@@ -1,0 +1,21 @@
+[workspace]
+members = ["native"]
+resolver = "3"
+
+[workspace.package]
+version = "0.1.0"
+authors = ["JamiiDao <support@jamiidao.app>"]
+description = "Institution grade server for Solana onchain tokenization, attestation and stablecoins"
+readme = "./README.md"
+keywords = [
+    "solana",
+    "solana-pay",
+    "onchain-attestation",
+    "tokenization",
+    "wallet-adapter",
+]
+categories = ["cryptography::cryptocurrencies"]
+license = "AGPL-3.0"
+edition = "2021"
+
+[workspace.dependencies]
