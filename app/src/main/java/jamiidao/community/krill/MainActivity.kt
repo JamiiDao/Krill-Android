@@ -14,6 +14,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import jamiidao.community.krill.ui.theme.KrillTheme
 import android.content.Intent
 import android.net.Uri
+import androidx.navigation.compose.rememberNavController
 
 class MainActivity : ComponentActivity() {
     init {
@@ -26,24 +27,9 @@ class MainActivity : ComponentActivity() {
         setContent {
             KrillTheme {
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    Greeting(
-                        name = rustffiFfiVersion(),
-                        modifier = Modifier.padding(innerPadding)
-                    )
+                    AppNavigation(innerPadding)
                 }
             }
         }
-        // ATTENTION: This was auto-generated to handle app links.
-        val appLinkIntent: Intent = intent
-        val appLinkAction: String? = appLinkIntent.action
-        val appLinkData: Uri? = appLinkIntent.data
     }
-}
-
-@Composable
-fun Greeting(name: String, modifier: Modifier = Modifier) {
-    Text(
-        text = "Hello $name!",
-        modifier = modifier
-    )
 }
