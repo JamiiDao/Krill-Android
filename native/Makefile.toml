@@ -4,6 +4,18 @@ CARGO_MAKE_EXTEND_WORKSPACE_MAKEFILE = true
 [tasks.default]
 clear = true
 dependencies = ["build_x86_64", "build_arm"]
+watch = { postpone = false, no_git_ignore = true, watch = [
+    "./src/",
+    "Cargo.toml",
+] }
+
+[tasks.debug_build]
+clear = true
+dependencies = ["build_x86_64_debug", "build_arm_debug"]
+watch = { postpone = false, no_git_ignore = true, watch = [
+    "./src/",
+    "Cargo.toml",
+] }
 
 [tasks.android_arm_release]
 script = '''
@@ -61,3 +73,64 @@ script = '''
 echo -------- FINISHED BUILDING OPS FOR ARM ---------
 '''
 dependencies = ["copy_kotlin_bindings_x86_64"]
+
+
+# Build for testing, this is good only for testing purposes
+# DO NOT DEPLOY TO PRODUCTION.
+
+[tasks.android_arm_debug]
+script = '''
+echo -------- ANDROID_BUILD::armv7_armv8 DEBUG BUILD ---------
+cargo ndk -t armeabi-v7a -t arm64-v8a -o ../app/src/main/jniLibs build --lib
+'''
+
+[tasks.android_x86_64_debug]
+script = '''
+echo -------- ANDROID_BUILD::x86_64 FOR DEBUG BUILD---------
+cargo ndk -t x86_64 -o ../app/src/main/jniLibs build --lib
+'''
+
+[tasks.generate_bindings_arm_build]
+script = '''
+echo -------- KOTLIN BINDINGS::uniffi FOR DEBUG BUILD ---------
+cargo run --release --features=uniffi/cli --bin uniffi-bindgen generate --library ../target/aarch64-linux-android/debug/libkrill_native.so --language kotlin --out-dir uniffi_out
+'''
+dependencies = ["android_arm_debug"]
+
+[tasks.generate_bindings_x86_64_debug]
+script = '''
+echo -------- KOTLIN BINDINGS::uniffi ---------
+cargo run --release --features=uniffi/cli --bin uniffi-bindgen generate --library ../target/x86_64-linux-android/debug/libkrill_native.so --language kotlin --out-dir uniffi_out
+'''
+dependencies = ["android_x86_64_debug"]
+
+
+[tasks.copy_kotlin_bindings_arm_debug]
+script = '''
+echo -------- COPYING KOTLIN BINDINGS FOR ARM DEBUG BUILD ---------
+cp ./uniffi_out/jamiidao/community/krill/rustFFI.kt ../app/src/main/java/jamiidao/community/krill/rustFFI.kt
+echo -------- FINISHED COPYING KOTLIN BINDINGS ---------
+'''
+dependencies = ["generate_bindings_arm_build"]
+
+
+[tasks.copy_kotlin_bindings_x86_64_debug]
+script = '''
+echo -------- COPYING KOTLIN BINDINGS FOR ARM DEBUG BUILD ---------
+cp ./uniffi_out/jamiidao/community/krill/rustFFI.kt ../app/src/main/java/jamiidao/community/krill/rustFFI.kt
+echo -------- FINISHED COPYING KOTLIN BINDINGS ---------
+'''
+dependencies = ["generate_bindings_x86_64_debug"]
+
+[tasks.build_arm_debug]
+script = '''
+echo -------- FINISHED DEBUG BUILD FOR ARM ---------
+'''
+dependencies = ["copy_kotlin_bindings_arm_debug"]
+
+
+[tasks.build_x86_64_debug]
+script = '''
+echo -------- FINISHED DEBUG BUILD FOR ARM ---------
+'''
+dependencies = ["copy_kotlin_bindings_x86_64_debug"]

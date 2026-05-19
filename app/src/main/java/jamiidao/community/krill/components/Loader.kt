@@ -24,7 +24,7 @@ import jamiidao.community.krill.ui.theme.CadmiumOrange
 @Composable
 fun KrillStripedLoader(
     modifier: Modifier = Modifier,
-    color: Color = Color(0xFFFF9800),
+    color: Color = Color(0xFF421A03),
     fadedColor: Color = CadmiumOrange,
 ) {
     val transition = rememberInfiniteTransition(label = "")

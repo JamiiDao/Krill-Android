@@ -4,7 +4,7 @@ resolver = "3"
 
 [workspace.package]
 version = "0.1.0"
-authors = ["JamiiDao <support@jamiidao.app>"]
+authors = ["Krill Developers <support@krill.pro>"]
 description = "Institution grade server for Solana onchain tokenization, attestation and stablecoins"
 readme = "./README.md"
 keywords = [
@@ -19,3 +19,15 @@ license = "AGPL-3.0"
 edition = "2021"
 
 [workspace.dependencies]
+redb = "=4.1.0"
+bitcode = { version = "=0.6.9", default-features = false, features = [
+    "std",
+    "derive",
+] }
+thiserror = "=2.0.18"
+camino = "=1.2.2"
+async-dup = "=1.2.4"
+blocking = "=1.6.2"
+tai64 = "=4.1.0"
+android_log-sys = "=0.3.2"
+async-fs = "=2.2.0"

@@ -5,43 +5,31 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.RenderEffect
 import androidx.compose.ui.graphics.Shape
-import androidx.compose.ui.graphics.TileMode
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import android.graphics.RenderEffect as AndroidRenderEffect
-import android.graphics.Shader
-import android.os.Build
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.size
-import androidx.compose.ui.draw.BlurredEdgeTreatment
-import androidx.compose.ui.graphics.asComposeRenderEffect
-import jamiidao.community.krill.ui.theme.brushDarkHorizontalGradient
+import jamiidao.community.krill.ui.theme.CadmiumOrange
 
 @Composable
 fun KrillGlassSurface(
     show: Boolean = true,
     percentage: Int = 50,
+    horizontalPadding: Dp = 20.dp,
+    verticalPadding: Dp = 12.dp,
+    filled: Boolean = false,
     content: @Composable () -> Unit,
 ) {
     val shape = RoundedCornerShape(percent = percentage)
@@ -72,13 +60,23 @@ fun KrillGlassSurface(
     }
 
     val selectBackground = if (show) {
-        Brush.linearGradient(
-            colors = listOf(
-                Color.White.copy(alpha = 0.1f),
-                Color.White.copy(alpha = 0.08f),
-                Color.White.copy(alpha = 0.05f)
+        if (filled) {
+            Brush.linearGradient(
+                colors = listOf(
+                    CadmiumOrange.copy(alpha = 0.1f),
+                    CadmiumOrange.copy(alpha = 0.08f),
+                    CadmiumOrange.copy(alpha = 0.05f)
+                )
             )
-        )
+        } else {
+            Brush.linearGradient(
+                colors = listOf(
+                    Color.White.copy(alpha = 0.1f),
+                    Color.White.copy(alpha = 0.08f),
+                    Color.White.copy(alpha = 0.05f)
+                )
+            )
+        }
     } else {
         Brush.linearGradient(
             colors = listOf(
@@ -100,7 +98,7 @@ fun KrillGlassSurface(
                 .background(
                     selectBackground
                 )
-                .padding(horizontal = 20.dp, vertical = 12.dp)
+                .padding(horizontal = horizontalPadding, vertical = verticalPadding)
         ) {
             content()
         }

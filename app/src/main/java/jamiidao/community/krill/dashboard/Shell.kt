@@ -1,7 +1,6 @@
 package jamiidao.community.krill.dashboard
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -61,6 +60,8 @@ data class BottomNavigationItem(
 fun DashboardShell(
     content: @Composable () -> Unit
 ) {
+
+
     val dashboardNavController = rememberNavController()
 
     val items = listOf(
@@ -112,6 +113,9 @@ fun DashboardShell(
                             },
                             icon = {
                                 BadgedBox(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(0.dp),
                                     badge = {
                                         if (item.badgeCount != null) {
                                             Badge {
@@ -121,11 +125,16 @@ fun DashboardShell(
                                             Badge()
                                         }
                                     }) {
-                                    KrillGlassSurface(show = (selectedItemIndex == index)) {
-
+                                    KrillGlassSurface(
+                                        show = (selectedItemIndex == index),
+                                        horizontalPadding = 10.dp,
+                                        verticalPadding = 6.dp
+                                    ) {
                                         Row(
                                             horizontalArrangement = Arrangement.Center,
                                             verticalAlignment = Alignment.CenterVertically,
+                                            modifier = Modifier
+                                                .fillMaxWidth(),
                                         ) {
                                             Icon(
                                                 imageVector = item.itemIcon,
