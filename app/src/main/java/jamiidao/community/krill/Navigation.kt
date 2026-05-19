@@ -1,12 +1,24 @@
 package jamiidao.community.krill
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.blur
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.dp
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -14,7 +26,10 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import androidx.navigation.navDeepLink
-import androidx.navigation.toRoute
+import jamiidao.community.krill.components.KrillBorderRing
+import jamiidao.community.krill.components.KrillGlassSurface
+import jamiidao.community.krill.components.KrillStripedLoader
+import jamiidao.community.krill.dashboard.DashboardShell
 import kotlinx.serialization.Serializable
 
 @Serializable
@@ -43,17 +58,13 @@ fun AppNavigation(
 ) {
     val navController = rememberNavController()
 
-    val navBackStackEntry by navController.currentBackStackEntryAsState()
-
     NavHost(
         navController = navController,
         startDestination = HomeRoute,
         modifier = Modifier.padding(paddingValues)
     ) {
 
-        composable<HomeRoute>(
-
-        ) {
+        composable<HomeRoute> {
             Home()
         }
 
@@ -110,9 +121,55 @@ fun AppNavigation(
 
 @Composable
 fun Home() {
-    Text(
-        text = "Hello ${rustffiFfiVersion()}!",
+
+    DashboardShell(
+        content = {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.SpaceAround,
+                modifier = Modifier.fillMaxSize()
+            ) {
+
+                Box(
+                    modifier = Modifier.fillMaxSize(.8f)
+                ) {
+                    KrillGlassSurface(percentage = 5) {
+                        Column(
+                            modifier = Modifier.height(100.dp)
+                        ) {
+                            Text("VISIBLE TEST")
+
+                            KrillGlassSurface(
+                                content = {
+                                    Text(
+                                        color = Color.White,
+                                        text = "Hello ${rustffiFfiVersion()}!",
+                                    )
+                                })
+                        }
+                    }
+                }
+
+                KrillStripedLoader()
+
+                KrillBorderRing(
+                    borderColor = Color(0xFFFF6600),
+                    shape = RoundedCornerShape(percent = 50)
+                ) {
+                    KrillGlassSurface(
+                        content = {
+                            Text(
+                                color = Color.White,
+                                text = "Hello ${rustffiFfiVersion()}!",
+                            )
+                        })
+                }
+            }
+
+        }
     )
+
+
 }
 
 @Composable
@@ -144,3 +201,4 @@ fun SecurityScreen() {
 fun UpdatesScreen() {
     Text("Updates")
 }
+

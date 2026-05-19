@@ -14,7 +14,10 @@ import androidx.compose.ui.tooling.preview.Preview
 import jamiidao.community.krill.ui.theme.KrillTheme
 import android.content.Intent
 import android.net.Uri
+import androidx.compose.foundation.layout.Box
+import androidx.compose.ui.Alignment
 import androidx.navigation.compose.rememberNavController
+import jamiidao.community.krill.components.KrillDotsBackground
 
 class MainActivity : ComponentActivity() {
     init {
@@ -26,8 +29,19 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             KrillTheme {
+
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    AppNavigation(innerPadding)
+
+
+                    Box(
+                        contentAlignment = Alignment.Center,
+                        modifier = Modifier
+                            .fillMaxSize()
+                    ) {
+                        // Background layer
+                        KrillDotsBackground()
+                        AppNavigation(innerPadding)
+                    }
                 }
             }
         }
