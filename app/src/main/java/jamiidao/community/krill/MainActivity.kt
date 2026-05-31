@@ -59,8 +59,11 @@ class MainActivity : ComponentActivity() {
                             .fillMaxSize()
                     ) {
                         // Background layer
-                        KrillDotsBackground()
-                        AppNavigation(activity = rootActivity, appStateViewModel, innerPadding)
+                        KrillDotsBackground(
+                            modifier = Modifier
+                                .fillMaxSize()
+                        )
+                        AppNavigation(mainActivity = rootActivity, appStateViewModel, innerPadding)
                     }
                 }
             }

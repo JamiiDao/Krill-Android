@@ -18,6 +18,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.navigation.NavController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -53,19 +54,10 @@ object UpdatesRoute
 
 @Composable
 fun AppNavigation(
-    activity: MainActivity, appStateViewModel: AppStateViewModel,
+    mainActivity: MainActivity, appStateViewModel: AppStateViewModel,
     paddingValues: PaddingValues
 ) {
     val navController = rememberNavController()
-
-    LaunchedEffect(Unit) {
-        try {
-            app_log("Navigation: HELLO QUIC Success")
-
-        } catch (e: RustFfiException) {
-            app_log("Navigation: HELLO QUIC: ${e.uiMessage()}")
-        }
-    }
 
     NavHost(
         navController = navController,
@@ -76,16 +68,16 @@ fun AppNavigation(
         composable<RequestNotificationPermissionRoute> {
             if (needsNotificationPermission()) {
                 RequestNotificationPermissionScreen(
-                    activity,
+                    mainActivity,
                     navController,
                 )
             } else {
-                DashboardView()
+                DashboardView(mainActivity, navController)
             }
         }
 
         composable<DashboardRoute> {
-            DashboardView()
+            DashboardView(mainActivity, navController)
         }
 
         composable(
@@ -108,9 +100,16 @@ fun AppNavigation(
             val action = backStackEntry.arguments?.getString("action")
             val argumentData = backStackEntry.arguments?.getString("arguments")
 
-            app_log("NOTIFICATION_DEEPLINK: $action/$argumentData")
+            val isValid = action == "join" || action == "dkg"
 
-            DeepLinked(argumentData)
+            if (!isValid) {
+                LaunchedEffect(Unit) {
+                    navController.popBackStack()
+                }
+                return@composable
+            }
+
+            DeepLinked("$action/$argumentData")
         }
 
         composable<NewsRoute>(
@@ -147,59 +146,9 @@ fun AppNavigation(
 
 
 @Composable
-fun DashboardView() {
-    val selectedRoute = if (hasNotificationPermission(LocalContext.current)) {
-        DashboardRoute
-    } else {
-        RequestNotificationPermissionRoute
-    }
-
+fun DashboardView(mainActivity: MainActivity, navController: NavController) {
     DashboardShell(
-        content = {
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.SpaceAround,
-                modifier = Modifier.fillMaxSize()
-            ) {
-                KrillLogo()
-
-                Box(
-                    modifier = Modifier.fillMaxSize(.8f)
-                ) {
-                    KrillGlassSurface(percentage = 5) {
-                        Column(
-                            modifier = Modifier.height(100.dp)
-                        ) {
-                            Text("VISIBLE TEST")
-
-                            KrillGlassSurface(
-                                content = {
-                                    Text(
-                                        color = Color.White,
-                                        text = "Hello ${rustFnFfiVersion()}!",
-                                    )
-                                })
-                        }
-                    }
-                }
-
-                KrillStripedLoader()
-
-                KrillBorderRing(
-                    borderColor = Color(0xFFFF6600),
-                    shape = RoundedCornerShape(percent = 50)
-                ) {
-                    KrillGlassSurface(
-                        content = {
-                            Text(
-                                color = Color.White,
-                                text = "Hello ${rustFnFfiVersion()}!",
-                            )
-                        })
-                }
-            }
-
-        }
+        mainActivity, navController,
     )
 }
 

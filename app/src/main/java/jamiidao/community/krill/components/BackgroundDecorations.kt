@@ -126,13 +126,13 @@ fun KrillBorderRing(
 
 @Composable
 fun KrillDotsBackground(
+    modifier: Modifier = Modifier,
     dotColor: Color = Color.White,
     dotRadius: Float = 2f,
-    spacing: Float = 80f
+    spacing: Float = 80f,
 ) {
     Canvas(
-        modifier = Modifier
-            .fillMaxSize()
+        modifier = modifier
             .background(Color.Black)
     ) {
         val width = size.width
