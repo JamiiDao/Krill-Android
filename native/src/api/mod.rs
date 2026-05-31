@@ -10,3 +10,5 @@ mod notification_channels;
 
 mod notification_processor;
 pub use notification_processor::*;
+
+mod org_info;

@@ -16,6 +16,9 @@ path = "uniffi-bindgen.rs"
 
 [dependencies]
 krill-common = { path = "/workspaces/krill/krill-common", features = ["quic"] }
+frost-dkg-ops = { git = "https://github.com/448-OG/Frost-Dkg-Ops.git" }
+frost-dkg-types = { git = "https://github.com/448-OG/Frost-Dkg-Ops.git" }
+
 quinn = { version = "0.11.9", default-features = false, features = [
     "bloom",
     "log",
@@ -40,3 +43,7 @@ tracing = { version = "0.1.44", default-features = false }
 base64ct = { version = "1.8.3", features = ["std"] }
 futures-lite = "2.6.1"
 async-net = "2.0.0"
+frost-ed25519 = "3.0.0"
+async-lock = "3.4.2"
+faster-hex = "0.10.0"
+bs58 = { version = "0.5.1", features = ["std"] }

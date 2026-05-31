@@ -9,12 +9,20 @@ import androidx.activity.viewModels
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.Scaffold
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.lifecycle.lifecycleScope
 import com.google.firebase.messaging.FirebaseMessaging
 import jamiidao.community.krill.components.KrillDotsBackground
+import jamiidao.community.krill.components.ShowErrorAsBottomSheet
 import jamiidao.community.krill.notifications_module.createSigningNotificationChannel
 import jamiidao.community.krill.ui.theme.KrillTheme
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.tasks.await
 
 class MainActivity : ComponentActivity() {
     init {
@@ -23,27 +31,21 @@ class MainActivity : ComponentActivity() {
 
     val rootActivity = this
     private val appStateViewModel: AppStateViewModel by viewModels()
+    private val fcmError = mutableStateOf<String?>(null)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        FirebaseMessaging.getInstance().token
-            .addOnCompleteListener { task ->
-                if (!task.isSuccessful) {
-                    return@addOnCompleteListener
-                }
-
-                task.result
-
-                app_log("MessageID: ${task.result}")
-
-
-                // send token to your backend
+        lifecycleScope.launch {
+            try {
+                val token = FirebaseMessaging.getInstance().token.await()
+                rustFnSetFcmToken(token)
+            } catch (e: Exception) {
+                fcmError.value = e.message ?: "Failed to get FCM token"
             }
+        }
 
         createSigningNotificationChannel(logExisting = true)
-
-//        handleIntent(intent)
 
         enableEdgeToEdge()
 
@@ -51,8 +53,8 @@ class MainActivity : ComponentActivity() {
             KrillTheme {
 
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-
-
+                    innerPadding;
+                    
                     Box(
                         contentAlignment = Alignment.Center,
                         modifier = Modifier
@@ -63,23 +65,25 @@ class MainActivity : ComponentActivity() {
                             modifier = Modifier
                                 .fillMaxSize()
                         )
-                        AppNavigation(mainActivity = rootActivity, appStateViewModel, innerPadding)
+                        AppNavigation(mainActivity = rootActivity, appStateViewModel)
+                    }
+
+                    if (fcmError.value != null) {
+                        ShowErrorAsBottomSheet(
+                            title = "Notification Error",
+                            error = fcmError.value!!,
+                            imageID = R.drawable.error,
+                            imageDescription = "",
+                            buttonTextContent = "Ok",
+                            callback = {
+
+                            },
+                        )
                     }
                 }
             }
         }
     }
-//
-//    override fun onNewIntent(intent: Intent) {
-//        super.onNewIntent(intent)
-//        setIntent(intent)
-//        handleIntent(intent)
-//    }
-//
-//    private fun handleIntent(intent: Intent?) {
-//        val data = intent?.data ?: return
-//        app_log("DEEPLINK: $data")
-//    }
 
     // Called after onCreate() or when returning from background
     override fun onStart() {

@@ -31,6 +31,7 @@ import jamiidao.community.krill.AppNavigation
 import jamiidao.community.krill.ui.theme.CadmiumOrange
 import jamiidao.community.krill.ui.theme.ModalColor
 import jamiidao.community.krill.ui.theme.MysticBlack
+import jamiidao.community.krill.ui.theme.commitMonoFamily
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -84,8 +85,9 @@ fun ShowErrorAsBottomSheet(
 
                     AppText(
                         textContent = title,
-                        fontSize = 40.sp,
-                        color = CadmiumOrange
+                        fontSize = 20.sp,
+                        color = CadmiumOrange,
+                        fontFamily = commitMonoFamily
                     )
                 }
                 Box(
