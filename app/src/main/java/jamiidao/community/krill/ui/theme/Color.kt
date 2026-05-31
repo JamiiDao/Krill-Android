@@ -6,4 +6,4 @@ val CadmiumOrange = Color(0xFFFF6600)
 val MysticBlack = Color(0xFF0B0414)
 val White = Color(0xFFDFDFDF)
 
-
+val ModalColor = Color(0xFF070707)

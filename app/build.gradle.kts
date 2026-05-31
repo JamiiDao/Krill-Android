@@ -44,6 +44,11 @@ android {
 dependencies {
     implementation("androidx.navigation:navigation-compose:2.9.8")
     implementation(libs.androidx.compose.foundation)
+    implementation("androidx.camera:camera-camera2:1.6.1")
+    implementation("androidx.camera:camera-view:1.6.1")
+    implementation("androidx.camera:camera-lifecycle:1.6.1")
+
+    implementation(libs.androidx.foundation)
     implementation(libs.androidx.ui)
     implementation("net.java.dev.jna:jna:5.18.1@aar")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.11.0")
@@ -51,6 +56,8 @@ dependencies {
     implementation(platform("com.google.firebase:firebase-bom:34.13.0"))
     implementation("com.google.firebase:firebase-analytics")
     implementation("com.google.firebase:firebase-messaging")
+
+    implementation("com.google.mlkit:barcode-scanning:17.3.0")
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)

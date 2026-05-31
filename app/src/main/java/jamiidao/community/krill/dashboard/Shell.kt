@@ -35,12 +35,16 @@ import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.navigation.NavController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import jamiidao.community.krill.MainActivity
 import jamiidao.community.krill.R
+import jamiidao.community.krill.ScanQR
 import jamiidao.community.krill.components.AppText
 import jamiidao.community.krill.components.KrillGlassSurface
+import jamiidao.community.krill.components.ShowErrorAsBottomSheet
 import jamiidao.community.krill.ui.theme.CadmiumOrange
 import jamiidao.community.krill.ui.theme.White
 
@@ -58,7 +62,8 @@ data class BottomNavigationItem(
 
 @Composable
 fun DashboardShell(
-    content: @Composable () -> Unit
+    mainActivity: MainActivity,
+    navigation: NavController,
 ) {
 
 
@@ -185,18 +190,17 @@ fun DashboardShell(
                 .padding(padding)
                 .background(Color.Transparent)
         ) {
-
-            content()
-
             NavHost(
                 navController = dashboardNavController,
                 startDestination = ROUTE_GROUPS,
                 modifier = Modifier.fillMaxSize()
             ) {
-                composable(ROUTE_GROUPS) { }
+                composable(ROUTE_GROUPS) {
+
+                }
 
                 composable(ROUTE_SCAN_QR) {
-
+                    ScanQR(mainActivity, navigation, dashboardNavController)
                 }
                 composable(ROUTE_PROFILE) { }
             }

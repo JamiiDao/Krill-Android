@@ -30,7 +30,6 @@ class FGCMService : FirebaseMessagingService() {
 
     private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
 
-
     override fun onMessageReceived(message: RemoteMessage) {
         scope.launch {
             val info = RustTypeReceivedNotificationData(
