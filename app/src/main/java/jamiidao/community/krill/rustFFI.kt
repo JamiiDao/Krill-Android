@@ -646,9 +646,17 @@ internal object IntegrityCheckingUniffiLib {
     ): Short
     external fun uniffi_krill_native_checksum_func_rust_fn_init_db(
     ): Short
+    external fun uniffi_krill_native_checksum_func_rust_fn_set_fcm_token(
+    ): Short
     external fun uniffi_krill_native_checksum_func_rust_fn_notification_versioning_ops(
     ): Short
     external fun uniffi_krill_native_checksum_func_rust_fn_process_notification_info(
+    ): Short
+    external fun uniffi_krill_native_checksum_func_rust_fn_fetch_org_info(
+    ): Short
+    external fun uniffi_krill_native_checksum_func_rust_fn_join(
+    ): Short
+    external fun uniffi_krill_native_checksum_func_rust_fn_load_stored_organization_info(
     ): Short
     external fun ffi_krill_native_uniffi_contract_version(
     ): Int
@@ -669,9 +677,17 @@ internal object UniffiLib {
     ): RustBuffer.ByValue
     external fun uniffi_krill_native_fn_func_rust_fn_init_db(`path`: RustBuffer.ByValue,
     ): Long
+    external fun uniffi_krill_native_fn_func_rust_fn_set_fcm_token(`token`: RustBuffer.ByValue,
+    ): Long
     external fun uniffi_krill_native_fn_func_rust_fn_notification_versioning_ops(uniffi_out_err: UniffiRustCallStatus, 
     ): RustBuffer.ByValue
     external fun uniffi_krill_native_fn_func_rust_fn_process_notification_info(`data`: RustBuffer.ByValue,
+    ): Long
+    external fun uniffi_krill_native_fn_func_rust_fn_fetch_org_info(`sldTld`: RustBuffer.ByValue,
+    ): Long
+    external fun uniffi_krill_native_fn_func_rust_fn_join(`sldTld`: RustBuffer.ByValue,`info`: RustBuffer.ByValue,
+    ): Long
+    external fun uniffi_krill_native_fn_func_rust_fn_load_stored_organization_info(`sldTld`: RustBuffer.ByValue,
     ): Long
     external fun ffi_krill_native_rustbuffer_alloc(`size`: Long,uniffi_out_err: UniffiRustCallStatus, 
     ): RustBuffer.ByValue
@@ -798,10 +814,22 @@ private fun uniffiCheckApiChecksums(lib: IntegrityCheckingUniffiLib) {
     if (lib.uniffi_krill_native_checksum_func_rust_fn_init_db() != 35698.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
+    if (lib.uniffi_krill_native_checksum_func_rust_fn_set_fcm_token() != 19160.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
     if (lib.uniffi_krill_native_checksum_func_rust_fn_notification_versioning_ops() != 30489.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if (lib.uniffi_krill_native_checksum_func_rust_fn_process_notification_info() != 48054.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_krill_native_checksum_func_rust_fn_fetch_org_info() != 7655.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_krill_native_checksum_func_rust_fn_join() != 53812.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_krill_native_checksum_func_rust_fn_load_stored_organization_info() != 41083.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
 }
@@ -1086,6 +1114,25 @@ public object FfiConverterString: FfiConverter<String, RustBuffer.ByValue> {
     }
 }
 
+/**
+ * @suppress
+ */
+public object FfiConverterByteArray: FfiConverterRustBuffer<ByteArray> {
+    override fun read(buf: ByteBuffer): ByteArray {
+        val len = buf.getInt()
+        val byteArr = ByteArray(len)
+        buf.get(byteArr)
+        return byteArr
+    }
+    override fun allocationSize(value: ByteArray): ULong {
+        return 4UL + value.size.toULong()
+    }
+    override fun write(value: ByteArray, buf: ByteBuffer) {
+        buf.putInt(value.size)
+        buf.put(value)
+    }
+}
+
 
 
 data class NotificationChannelInfo (
@@ -1174,6 +1221,54 @@ public object FfiConverterTypeNotificationVersioningOps: FfiConverterRustBuffer<
 
 
 
+data class ParticipantOrgInfo (
+    var `ecdvk`: kotlin.String
+    , 
+    var `avk`: kotlin.String
+    , 
+    var `orgInfo`: RustTypeOrganizationInfo
+    , 
+    var `identity`: kotlin.String
+    
+){
+    
+
+    
+
+    
+    companion object
+}
+
+/**
+ * @suppress
+ */
+public object FfiConverterTypeParticipantOrgInfo: FfiConverterRustBuffer<ParticipantOrgInfo> {
+    override fun read(buf: ByteBuffer): ParticipantOrgInfo {
+        return ParticipantOrgInfo(
+            FfiConverterString.read(buf),
+            FfiConverterString.read(buf),
+            FfiConverterTypeRustTypeOrganizationInfo.read(buf),
+            FfiConverterString.read(buf),
+        )
+    }
+
+    override fun allocationSize(value: ParticipantOrgInfo) = (
+            FfiConverterString.allocationSize(value.`ecdvk`) +
+            FfiConverterString.allocationSize(value.`avk`) +
+            FfiConverterTypeRustTypeOrganizationInfo.allocationSize(value.`orgInfo`) +
+            FfiConverterString.allocationSize(value.`identity`)
+    )
+
+    override fun write(value: ParticipantOrgInfo, buf: ByteBuffer) {
+            FfiConverterString.write(value.`ecdvk`, buf)
+            FfiConverterString.write(value.`avk`, buf)
+            FfiConverterTypeRustTypeOrganizationInfo.write(value.`orgInfo`, buf)
+            FfiConverterString.write(value.`identity`, buf)
+    }
+}
+
+
+
 data class RustTypeFetchedNotificationInfo (
     var `notificationId`: kotlin.Int
     , 
@@ -1227,6 +1322,64 @@ public object FfiConverterTypeRustTypeFetchedNotificationInfo: FfiConverterRustB
             FfiConverterString.write(value.`heading`, buf)
             FfiConverterString.write(value.`subheading`, buf)
             FfiConverterBoolean.write(value.`liveUpdate`, buf)
+    }
+}
+
+
+
+data class RustTypeOrganizationInfo (
+    var `name`: kotlin.String
+    , 
+    var `logoIcon`: kotlin.ByteArray
+    , 
+    var `logoHorizontal`: kotlin.ByteArray
+    , 
+    var `logoVertical`: kotlin.ByteArray
+    , 
+    var `favicon`: kotlin.ByteArray
+    , 
+    var `supportMail`: kotlin.String
+    
+){
+    
+
+    
+
+    
+    companion object
+}
+
+/**
+ * @suppress
+ */
+public object FfiConverterTypeRustTypeOrganizationInfo: FfiConverterRustBuffer<RustTypeOrganizationInfo> {
+    override fun read(buf: ByteBuffer): RustTypeOrganizationInfo {
+        return RustTypeOrganizationInfo(
+            FfiConverterString.read(buf),
+            FfiConverterByteArray.read(buf),
+            FfiConverterByteArray.read(buf),
+            FfiConverterByteArray.read(buf),
+            FfiConverterByteArray.read(buf),
+            FfiConverterString.read(buf),
+        )
+    }
+
+    override fun allocationSize(value: RustTypeOrganizationInfo) = (
+            FfiConverterString.allocationSize(value.`name`) +
+            FfiConverterByteArray.allocationSize(value.`logoIcon`) +
+            FfiConverterByteArray.allocationSize(value.`logoHorizontal`) +
+            FfiConverterByteArray.allocationSize(value.`logoVertical`) +
+            FfiConverterByteArray.allocationSize(value.`favicon`) +
+            FfiConverterString.allocationSize(value.`supportMail`)
+    )
+
+    override fun write(value: RustTypeOrganizationInfo, buf: ByteBuffer) {
+            FfiConverterString.write(value.`name`, buf)
+            FfiConverterByteArray.write(value.`logoIcon`, buf)
+            FfiConverterByteArray.write(value.`logoHorizontal`, buf)
+            FfiConverterByteArray.write(value.`logoVertical`, buf)
+            FfiConverterByteArray.write(value.`favicon`, buf)
+            FfiConverterString.write(value.`supportMail`, buf)
     }
 }
 
@@ -2243,6 +2396,20 @@ sealed class RustFfiException: kotlin.Exception() {
             get() = "v1=${ v1 }"
     }
     
+    class Security(
+        
+        val v1: kotlin.String
+        ) : RustFfiException() {
+        override val message
+            get() = "v1=${ v1 }"
+    }
+    
+    class UnableToDecodeStoredOrgInfo(
+        ) : RustFfiException() {
+        override val message
+            get() = ""
+    }
+    
 
      fun `uiMessage`(): kotlin.String {
             return FfiConverterString.lift(
@@ -2285,6 +2452,10 @@ public object FfiConverterTypeRustFfiError : FfiConverterRustBuffer<RustFfiExcep
             7 -> RustFfiException.Quic(
                 FfiConverterString.read(buf),
                 )
+            8 -> RustFfiException.Security(
+                FfiConverterString.read(buf),
+                )
+            9 -> RustFfiException.UnableToDecodeStoredOrgInfo()
             else -> throw RuntimeException("invalid error enum value, something is very wrong!!")
         }
     }
@@ -2322,6 +2493,15 @@ public object FfiConverterTypeRustFfiError : FfiConverterRustBuffer<RustFfiExcep
                 4UL
                 + FfiConverterString.allocationSize(value.v1)
             )
+            is RustFfiException.Security -> (
+                // Add the size for the Int that specifies the variant plus the size needed for all fields
+                4UL
+                + FfiConverterString.allocationSize(value.v1)
+            )
+            is RustFfiException.UnableToDecodeStoredOrgInfo -> (
+                // Add the size for the Int that specifies the variant plus the size needed for all fields
+                4UL
+            )
         }
     }
 
@@ -2356,6 +2536,15 @@ public object FfiConverterTypeRustFfiError : FfiConverterRustBuffer<RustFfiExcep
             is RustFfiException.Quic -> {
                 buf.putInt(7)
                 FfiConverterString.write(value.v1, buf)
+                Unit
+            }
+            is RustFfiException.Security -> {
+                buf.putInt(8)
+                FfiConverterString.write(value.v1, buf)
+                Unit
+            }
+            is RustFfiException.UnableToDecodeStoredOrgInfo -> {
+                buf.putInt(9)
                 Unit
             }
         }.let { /* this makes the `when` an expression, which ensures it is exhaustive */ }
@@ -3039,6 +3228,38 @@ public object FfiConverterOptionalString: FfiConverterRustBuffer<kotlin.String?>
 /**
  * @suppress
  */
+public object FfiConverterOptionalTypeParticipantOrgInfo: FfiConverterRustBuffer<ParticipantOrgInfo?> {
+    override fun read(buf: ByteBuffer): ParticipantOrgInfo? {
+        if (buf.get().toInt() == 0) {
+            return null
+        }
+        return FfiConverterTypeParticipantOrgInfo.read(buf)
+    }
+
+    override fun allocationSize(value: ParticipantOrgInfo?): ULong {
+        if (value == null) {
+            return 1UL
+        } else {
+            return 1UL + FfiConverterTypeParticipantOrgInfo.allocationSize(value)
+        }
+    }
+
+    override fun write(value: ParticipantOrgInfo?, buf: ByteBuffer) {
+        if (value == null) {
+            buf.put(0)
+        } else {
+            buf.put(1)
+            FfiConverterTypeParticipantOrgInfo.write(value, buf)
+        }
+    }
+}
+
+
+
+
+/**
+ * @suppress
+ */
 public object FfiConverterOptionalTypeRustTypeFetchedNotificationInfo: FfiConverterRustBuffer<RustTypeFetchedNotificationInfo?> {
     override fun read(buf: ByteBuffer): RustTypeFetchedNotificationInfo? {
         if (buf.get().toInt() == 0) {
@@ -3125,6 +3346,21 @@ public object FfiConverterSequenceTypeNotificationChannelInfo: FfiConverterRustB
         RustFfiException.ErrorHandler,
     )
     }
+
+    @Suppress("ASSIGNED_BUT_NEVER_ACCESSED_VARIABLE")
+     suspend fun `rustFnSetFcmToken`(`token`: kotlin.String) {
+        return uniffiRustCallAsync(
+        UniffiLib.uniffi_krill_native_fn_func_rust_fn_set_fcm_token(FfiConverterString.lower(`token`),),
+        { future, callback, continuation -> UniffiLib.ffi_krill_native_rust_future_poll_void(future, callback, continuation) },
+        { future, continuation -> UniffiLib.ffi_krill_native_rust_future_complete_void(future, continuation) },
+        { future -> UniffiLib.ffi_krill_native_rust_future_free_void(future) },
+        // lift function
+        { Unit },
+        
+        // Error FFI converter
+        UniffiNullRustCallStatusErrorHandler,
+    )
+    }
  fun `rustFnNotificationVersioningOps`(): NotificationVersioningOps {
             return FfiConverterTypeNotificationVersioningOps.lift(
     uniffiRustCall() { _status ->
@@ -3147,6 +3383,52 @@ public object FfiConverterSequenceTypeNotificationChannelInfo: FfiConverterRustB
         { FfiConverterOptionalTypeRustTypeFetchedNotificationInfo.lift(it) },
         // Error FFI converter
         UniffiNullRustCallStatusErrorHandler,
+    )
+    }
+
+    @Throws(RustFfiException::class)
+    @Suppress("ASSIGNED_BUT_NEVER_ACCESSED_VARIABLE")
+     suspend fun `rustFnFetchOrgInfo`(`sldTld`: kotlin.String) : RustTypeOrganizationInfo {
+        return uniffiRustCallAsync(
+        UniffiLib.uniffi_krill_native_fn_func_rust_fn_fetch_org_info(FfiConverterString.lower(`sldTld`),),
+        { future, callback, continuation -> UniffiLib.ffi_krill_native_rust_future_poll_rust_buffer(future, callback, continuation) },
+        { future, continuation -> UniffiLib.ffi_krill_native_rust_future_complete_rust_buffer(future, continuation) },
+        { future -> UniffiLib.ffi_krill_native_rust_future_free_rust_buffer(future) },
+        // lift function
+        { FfiConverterTypeRustTypeOrganizationInfo.lift(it) },
+        // Error FFI converter
+        RustFfiException.ErrorHandler,
+    )
+    }
+
+    @Throws(RustFfiException::class)
+    @Suppress("ASSIGNED_BUT_NEVER_ACCESSED_VARIABLE")
+     suspend fun `rustFnJoin`(`sldTld`: kotlin.String, `info`: RustTypeOrganizationInfo) {
+        return uniffiRustCallAsync(
+        UniffiLib.uniffi_krill_native_fn_func_rust_fn_join(FfiConverterString.lower(`sldTld`),FfiConverterTypeRustTypeOrganizationInfo.lower(`info`),),
+        { future, callback, continuation -> UniffiLib.ffi_krill_native_rust_future_poll_void(future, callback, continuation) },
+        { future, continuation -> UniffiLib.ffi_krill_native_rust_future_complete_void(future, continuation) },
+        { future -> UniffiLib.ffi_krill_native_rust_future_free_void(future) },
+        // lift function
+        { Unit },
+        
+        // Error FFI converter
+        RustFfiException.ErrorHandler,
+    )
+    }
+
+    @Throws(RustFfiException::class)
+    @Suppress("ASSIGNED_BUT_NEVER_ACCESSED_VARIABLE")
+     suspend fun `rustFnLoadStoredOrganizationInfo`(`sldTld`: kotlin.String) : ParticipantOrgInfo? {
+        return uniffiRustCallAsync(
+        UniffiLib.uniffi_krill_native_fn_func_rust_fn_load_stored_organization_info(FfiConverterString.lower(`sldTld`),),
+        { future, callback, continuation -> UniffiLib.ffi_krill_native_rust_future_poll_rust_buffer(future, callback, continuation) },
+        { future, continuation -> UniffiLib.ffi_krill_native_rust_future_complete_rust_buffer(future, continuation) },
+        { future -> UniffiLib.ffi_krill_native_rust_future_free_rust_buffer(future) },
+        // lift function
+        { FfiConverterOptionalTypeParticipantOrgInfo.lift(it) },
+        // Error FFI converter
+        RustFfiException.ErrorHandler,
     )
     }
 

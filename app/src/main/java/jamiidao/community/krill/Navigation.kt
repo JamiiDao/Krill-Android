@@ -25,11 +25,14 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import androidx.navigation.navDeepLink
+import androidx.navigation.toRoute
 import jamiidao.community.krill.components.KrillBorderRing
 import jamiidao.community.krill.components.KrillGlassSurface
 import jamiidao.community.krill.components.KrillLogo
 import jamiidao.community.krill.components.KrillStripedLoader
 import jamiidao.community.krill.dashboard.DashboardShell
+import jamiidao.community.krill.dashboard.ViewOrganizationView
+import jamiidao.community.krill.deeplinks.JoinOrganization
 import jamiidao.community.krill.notifications_module.RequestNotificationPermissionScreen
 import jamiidao.community.krill.notifications_module.hasNotificationPermission
 import jamiidao.community.krill.notifications_module.needsNotificationPermission
@@ -41,6 +44,9 @@ object DashboardRoute
 
 @Serializable
 object RequestNotificationPermissionRoute
+
+@Serializable
+data class ViewOrganizationRoute(val sldTld: String)
 
 
 @Serializable
@@ -55,16 +61,13 @@ object UpdatesRoute
 @Composable
 fun AppNavigation(
     mainActivity: MainActivity, appStateViewModel: AppStateViewModel,
-    paddingValues: PaddingValues
 ) {
     val navController = rememberNavController()
 
     NavHost(
         navController = navController,
         startDestination = DashboardRoute,
-        modifier = Modifier.padding(paddingValues)
     ) {
-
         composable<RequestNotificationPermissionRoute> {
             if (needsNotificationPermission()) {
                 RequestNotificationPermissionScreen(
@@ -78,6 +81,11 @@ fun AppNavigation(
 
         composable<DashboardRoute> {
             DashboardView(mainActivity, navController)
+        }
+
+        composable<ViewOrganizationRoute> { backStackEntry ->
+            val routeData: ViewOrganizationRoute = backStackEntry.toRoute()
+            ViewOrganizationView(navController, routeData.sldTld)
         }
 
         composable(
@@ -100,16 +108,28 @@ fun AppNavigation(
             val action = backStackEntry.arguments?.getString("action")
             val argumentData = backStackEntry.arguments?.getString("arguments")
 
-            val isValid = action == "join" || action == "dkg"
+            argumentData?.let {
+                when (action) {
+                    "join" -> {
+                        JoinOrganization(navController, argumentData)
+                    }
 
-            if (!isValid) {
-                LaunchedEffect(Unit) {
+                    "dkg" -> {
+                        DeepLinked("$action/$argumentData")
+                    }
+
+                    else -> {
+                        LaunchedEffect(Unit) {
+                            navController.popBackStack()
+                        }
+                        return@composable
+                    }
+                }
+            }
+                ?: LaunchedEffect(Unit) {
                     navController.popBackStack()
                 }
-                return@composable
-            }
-
-            DeepLinked("$action/$argumentData")
+            return@composable
         }
 
         composable<NewsRoute>(
@@ -143,7 +163,6 @@ fun AppNavigation(
         }
     }
 }
-
 
 @Composable
 fun DashboardView(mainActivity: MainActivity, navController: NavController) {

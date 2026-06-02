@@ -1,17 +1,7 @@
-use std::sync::OnceLock;
-
 use async_fs::create_dir_all;
 use camino::Utf8PathBuf;
-use krill_common::QuicProtocolData;
 
-use crate::{AppStorage, ClientUtils, QuicClient, RustFfiError, PKG_VERSION};
-
-pub(crate) const KRILL_DIR: &str = ".Krill";
-pub(crate) static APP_DB: OnceLock<AppStorage> = OnceLock::new();
-
-pub(crate) fn app_storage() -> Result<&'static AppStorage, RustFfiError> {
-    APP_DB.get().ok_or(RustFfiError::AppStorageNotInitialized)
-}
+use crate::{AppStorage, RustFfiError, PKG_VERSION};
 
 #[uniffi::export]
 pub fn rust_fn_ffi_version() -> String {
@@ -19,9 +9,19 @@ pub fn rust_fn_ffi_version() -> String {
 }
 
 #[uniffi::export]
+pub async fn rust_fn_set_fcm_token(token: String) {
+    *crate::FCM_TOKEN.write().await = token;
+
+    crate::ClientUtils::log_to_logcat(&format!(
+        "Registered backend: {}",
+        crate::FCM_TOKEN.read().await.as_str()
+    ));
+}
+
+#[uniffi::export]
 pub async fn rust_fn_init_db(path: String) -> Result<(), RustFfiError> {
     let mut path: Utf8PathBuf = path.into();
-    path.push(KRILL_DIR);
+    path.push(crate::KRILL_DIR);
 
     create_dir_all(&path).await?;
 
@@ -29,26 +29,9 @@ pub async fn rust_fn_init_db(path: String) -> Result<(), RustFfiError> {
 
     let db = AppStorage::init(path).await?;
 
-    if APP_DB.set(db).is_err() {
+    if crate::APP_DB.set(db).is_err() {
         Err(RustFfiError::AppStorageNotInitialized)
     } else {
         Ok(())
     }
 }
-
-// #[uniffi::export]
-// pub async fn rust_fn_quic_hello() -> Result<(), RustFfiError> {
-//     #[cfg(debug_assertions)]
-//     let server_address =
-//         std::net::SocketAddr::V4(SocketAddrV4::new([192, 168, 100, 134].into(), 6766));
-//     ClientUtils::log_to_logcat(&format!("Server Received: {:?}", server_address));
-//     #[cfg(debug_assertions)]
-//     let server_domain_name = "192.168.100.134";
-
-//     QuicClient::connect(&QuicProtocolData::Hello)
-//         .await
-//         .map_err(|error| {
-//             ClientUtils::log_to_logcat(error.to_string().as_str());
-//             RustFfiError::Quic(error.to_string())
-//         })
-// }

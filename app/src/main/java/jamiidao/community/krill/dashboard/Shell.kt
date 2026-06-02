@@ -45,6 +45,7 @@ import jamiidao.community.krill.ScanQR
 import jamiidao.community.krill.components.AppText
 import jamiidao.community.krill.components.KrillGlassSurface
 import jamiidao.community.krill.components.ShowErrorAsBottomSheet
+import jamiidao.community.krill.deeplinks.JoinOrganization
 import jamiidao.community.krill.ui.theme.CadmiumOrange
 import jamiidao.community.krill.ui.theme.White
 
@@ -63,7 +64,7 @@ data class BottomNavigationItem(
 @Composable
 fun DashboardShell(
     mainActivity: MainActivity,
-    navigation: NavController,
+    navController: NavController,
 ) {
 
 
@@ -200,7 +201,7 @@ fun DashboardShell(
                 }
 
                 composable(ROUTE_SCAN_QR) {
-                    ScanQR(mainActivity, navigation, dashboardNavController)
+                    ScanQR(mainActivity, navController, dashboardNavController)
                 }
                 composable(ROUTE_PROFILE) { }
             }

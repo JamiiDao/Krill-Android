@@ -14,6 +14,15 @@ impl AppStorage {
         blocking::unblock(move || {
             let store = Arc::new(Database::create(path)?);
 
+            // Initialize tables
+            {
+                let write_txn = store.begin_write()?;
+
+                write_txn.open_table(Self::ORG_INFO_TABLE)?;
+
+                write_txn.commit()?;
+            }
+
             Ok(Self { store })
         })
         .await

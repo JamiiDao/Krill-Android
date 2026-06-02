@@ -3,9 +3,10 @@ use std::{
     str::FromStr,
 };
 
-use bitcode::{Decode, Encode};
+use bitcode::{Decode, DecodeOwned, Encode};
 use krill_common::{
-    KrillError, QuicCommon, QuicProtocolData, QuicTransmissionError, QuicTransmissionResult,
+    KrillError, QuicCommon, QuicProtocolOp, QuicTransmissionEncoder, QuicTransmissionError,
+    QuicTransmissionResult,
 };
 
 use quinn::{
@@ -23,19 +24,24 @@ use std::sync::Arc;
 pub struct QuicClient;
 
 impl QuicClient {
-    pub async fn connect(
+    pub async fn connect<T: Encode + DecodeOwned>(
         sld_tld: &str,
         payload: &(impl Encode + Decode<'static>),
-    ) -> krill_common::KrillResult<QuicProtocolData> {
-        let (socket_addr, server_name, classification) = Self::resolve(sld_tld).await?;
+    ) -> Result<T, QuicTransmissionError> {
+        let (mut socket_addr, server_name, classification) = Self::resolve(sld_tld).await?;
 
         let client_config = if classification == IpClassification::Internet {
             quinn::ClientConfig::try_with_platform_verifier()?
         } else {
-            Self::configure_client().map_err(|error| KrillError::Rustls(error.to_string()))?
+            Self::configure_client()
+                .map_err(|error| QuicTransmissionError::Rustls(error.to_string()))?
         };
 
+        // TODO: Random port avoid DDoS
         let mut endpoint = Endpoint::client(QuicCommon::CLIENT_ADDR)?;
+        socket_addr.set_port(QuicCommon::SERVER_PORT);
+
+        // TODO set better timeout
 
         endpoint.set_default_client_config(client_config);
         // Connect to the server passing in the server name which is supposed to be in the server certificate.
@@ -59,13 +65,15 @@ impl QuicClient {
             response.extend_from_slice(&buf[..n]);
         }
 
-        bitcode::decode::<QuicTransmissionResult>(&response)
-            .or::<KrillError>(Err(QuicTransmissionError::InvalidResponsePayload.into()))?
-            .map_err(|value| {
-                let outcome: KrillError = value.into();
-
-                outcome
-            })
+        if let Some(value) = response.first() {
+            if *value == 0 {
+                QuicTransmissionEncoder::decode_success::<T>(&response[1..])
+            } else {
+                Err(QuicTransmissionEncoder::decode_failure(&response[1..]))
+            }
+        } else {
+            Err(QuicTransmissionError::InvalidResponsePayload)
+        }
     }
 
     fn configure_client() -> Result<ClientConfig, NoInitialCipherSuite> {
@@ -99,7 +107,7 @@ impl QuicClient {
         let sni_name = if classification == IpClassification::Internet {
             sld_tld
         } else {
-            classification.context_string()
+            classification.server_name()
         };
 
         Ok((addr, sni_name.to_string(), classification))
@@ -170,6 +178,13 @@ impl IpClassification {
             Self::LinkLocal => "Link-Local",
             Self::Multicast => "Multicast",
             Self::Internet => "Internet",
+        }
+    }
+
+    pub fn server_name(&self) -> &'static str {
+        match self {
+            Self::Internet => "Internet",
+            _ => QuicCommon::SERVER_NAME_QUIC_DEBUG,
         }
     }
 }

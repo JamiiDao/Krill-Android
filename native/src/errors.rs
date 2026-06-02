@@ -1,4 +1,5 @@
 use bitcode::{Decode, Encode};
+use krill_common::QuicTransmissionError;
 
 pub type RustFfiResult<T> = Result<T, RustFfiError>;
 
@@ -18,12 +19,28 @@ pub enum RustFfiError {
     Io(CustomErrorKind),
     #[error("{0}")]
     Quic(String),
+    #[error("{0}")]
+    Security(String),
+    #[error("Unable to decode the bytes into `StoredOrgInfo`")]
+    UnableToDecodeStoredOrgInfo,
 }
 
 #[uniffi::export]
 impl RustFfiError {
     pub fn ui_message(&self) -> String {
         self.to_string()
+    }
+}
+
+impl From<frost_dkg_types::FrostOpsError> for RustFfiError {
+    fn from(error: frost_dkg_types::FrostOpsError) -> Self {
+        Self::Security(error.to_string())
+    }
+}
+
+impl From<QuicTransmissionError> for RustFfiError {
+    fn from(error: QuicTransmissionError) -> Self {
+        Self::Quic(error.to_string())
     }
 }
 

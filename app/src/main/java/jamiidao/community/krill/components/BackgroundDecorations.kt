@@ -25,6 +25,8 @@ import jamiidao.community.krill.ui.theme.CadmiumOrange
 
 @Composable
 fun KrillGlassSurface(
+    modifier: Modifier =
+        Modifier,
     show: Boolean = true,
     percentage: Int = 50,
     horizontalPadding: Dp = 20.dp,
@@ -34,7 +36,7 @@ fun KrillGlassSurface(
 ) {
     val shape = RoundedCornerShape(percent = percentage)
     val selectModifier = if (show) {
-        Modifier
+        modifier
             .fillMaxWidth()
             .clip(shape)
             .shadow(
