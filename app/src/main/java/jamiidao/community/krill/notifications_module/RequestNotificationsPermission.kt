@@ -139,20 +139,11 @@ fun RequestNotificationPermissionScreen(
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     GlassButton(
-                        textContent = "Skip",
-                        callback = {
-                            navController.navigate(DashboardRoute) {
-                                popUpTo(DashboardRoute) { inclusive = true }
-                            }
-                        },
-                        width = .3f,
-                    )
-                    GlassButton(
                         textContent = "Allow Notifications",
                         callback = {
                             permissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
                         },
-                        width = .9f,
+                        width = 1f,
                         filled = true
                     )
                 }

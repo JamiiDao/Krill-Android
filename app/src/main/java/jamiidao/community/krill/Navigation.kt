@@ -60,7 +60,7 @@ object UpdatesRoute
 
 @Composable
 fun AppNavigation(
-    mainActivity: MainActivity, appStateViewModel: AppStateViewModel,
+    mainActivity: MainActivity,
 ) {
     val navController = rememberNavController()
 
@@ -166,9 +166,16 @@ fun AppNavigation(
 
 @Composable
 fun DashboardView(mainActivity: MainActivity, navController: NavController) {
-    DashboardShell(
-        mainActivity, navController,
-    )
+    if (needsNotificationPermission() && !hasNotificationPermission(mainActivity)) {
+        RequestNotificationPermissionScreen(
+            mainActivity,
+            navController,
+        )
+    } else {
+        DashboardShell(
+            mainActivity, navController,
+        )
+    }
 }
 
 

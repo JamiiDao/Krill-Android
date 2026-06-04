@@ -2,28 +2,20 @@ use frost_dkg_types::{AsymmetricKeypairBytes, EphemeralClientDeviceKeypair, Fros
 use krill_common::{JoinPayload, OrganizationInfo, QuicProtocolOp};
 
 use crate::{
-    ParticipantOrgInfo, QuicClient, RustFfiError, RustTypeOrganizationInfo, StoredOrgInfo,
-    FCM_TOKEN,
+    QuicClient, RustFfiError, RustTypeOrganizationInfo, RustTypeStoredOrgInfoMetadata,
+    StoredOrgInfo, FCM_TOKEN,
 };
 
 #[uniffi::export]
 async fn rust_fn_load_stored_organization_info(
     sld_tld: String,
-) -> Result<Option<ParticipantOrgInfo>, RustFfiError> {
+) -> Result<Option<RustTypeStoredOrgInfoMetadata>, RustFfiError> {
     Ok(crate::app_storage()?
         .get_org_info(&sld_tld)
         .await?
         .map(|value| {
-            let org_info: RustTypeOrganizationInfo = value.org_info.into();
-
-            let encode = |bytes: &[u8]| -> String { bs58::encode(bytes).into_string() };
-
-            ParticipantOrgInfo {
-                ecdvk: encode(value.edkp.verifying_key_encodable().0.as_slice()),
-                avk: encode(value.akp.verifying_key_encodable().0.as_slice()),
-                org_info,
-                identity: value.identity.seed().to_string(),
-            }
+            let org_info: RustTypeStoredOrgInfoMetadata = value.into();
+            org_info
         }))
 }
 
@@ -35,6 +27,16 @@ async fn rust_fn_fetch_org_info(sld_tld: String) -> Result<RustTypeOrganizationI
         .await
         .map_err(|error| RustFfiError::Quic(error.to_string()))?
         .into())
+}
+
+#[uniffi::export]
+async fn rust_fn_get_orgs_metadata() -> Result<Vec<RustTypeStoredOrgInfoMetadata>, RustFfiError> {
+    crate::app_storage()?.get_all_orgs().await
+}
+
+#[uniffi::export]
+async fn rust_fn_clear_org_info() -> Result<(), RustFfiError> {
+    crate::app_storage()?.clear_org_info().await
 }
 
 #[uniffi::export]
@@ -52,9 +54,10 @@ async fn rust_fn_join(sld_tld: String, info: RustTypeOrganizationInfo) -> Result
         let akp = AsymmetricKeypairBytes::new()?;
         let identity = FrostCredentialSeed::new_anonymous::<crate::FrostEd25519>()?;
 
-        let org_info = info.into();
+        let org_info: OrganizationInfo = info.into();
 
         stored_org_info = StoredOrgInfo {
+            sld_tld: sld_tld.clone(),
             registered: false,
             org_info,
             edkp,
@@ -64,7 +67,12 @@ async fn rust_fn_join(sld_tld: String, info: RustTypeOrganizationInfo) -> Result
 
         crate::app_storage()?
             .set_org_info(&sld_tld, stored_org_info.clone())
-            .await?
+            .await?;
+
+        crate::ORG_INFO
+            .write()
+            .await
+            .replace(stored_org_info.clone());
     }
 
     let payload = JoinPayload {
@@ -90,32 +98,5 @@ async fn rust_fn_join(sld_tld: String, info: RustTypeOrganizationInfo) -> Result
         crate::app_storage()?
             .set_org_info(&sld_tld, stored_org_info.clone())
             .await
-    }
-}
-
-impl From<OrganizationInfo> for RustTypeOrganizationInfo {
-    fn from(value: OrganizationInfo) -> Self {
-        RustTypeOrganizationInfo {
-            name: value.name,
-            logo_icon: value.logo_icon,
-            logo_horizontal: value.logo_horizontal,
-            logo_vertical: value.logo_vertical,
-            favicon: value.favicon,
-            support_mail: value.support_mail,
-        }
-    }
-}
-
-impl From<RustTypeOrganizationInfo> for OrganizationInfo {
-    fn from(value: RustTypeOrganizationInfo) -> Self {
-        OrganizationInfo {
-            name: value.name,
-            logo_icon: value.logo_icon,
-            logo_horizontal: value.logo_horizontal,
-            logo_vertical: value.logo_vertical,
-            favicon: value.favicon,
-            support_mail: value.support_mail,
-            ..Default::default()
-        }
     }
 }

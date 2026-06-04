@@ -11,8 +11,11 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
@@ -21,19 +24,23 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.google.firebase.messaging.FirebaseMessaging
 import jamiidao.community.krill.components.AppText
 import jamiidao.community.krill.components.GlassButton
 import jamiidao.community.krill.components.KrillLogo
 import jamiidao.community.krill.components.KrillStripedLoader
+import jamiidao.community.krill.components.ShowErrorAsBottomSheet
 import jamiidao.community.krill.ui.theme.CadmiumOrange
+import jamiidao.community.krill.ui.theme.bungeeHairlineFamily
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.tasks.await
 
 class AppStateViewModel(application: Application) : AndroidViewModel(application) {
 
-    val appStorageDir: String = application.filesDir.absolutePath
-
+    private val appStorageDir = getApplication<Application>()
+        .filesDir.absolutePath
     private val _appState = MutableStateFlow<Result<Unit>?>(null)
     val appState: StateFlow<Result<Unit>?> = _appState
 
@@ -56,7 +63,7 @@ class AppStateViewModel(application: Application) : AndroidViewModel(application
 
 @Composable
 fun InitApp(
-    activity: MainActivity,
+    mainActivity: MainActivity,
     appStateViewModel: AppStateViewModel = viewModel(),
     paddingValues: PaddingValues
 ) {
@@ -89,8 +96,9 @@ fun InitApp(
                     ) {
                         AppText(
                             textContent = "INITIALIZING APP",
-                            fontSize = 16.sp,
-                            fontWeight = FontWeight.Bold
+                            fontSize = 25.sp,
+                            fontWeight = FontWeight.Bold,
+                            fontFamily = bungeeHairlineFamily
                         )
                         Spacer(Modifier.height(10.dp))
                         KrillStripedLoader()
@@ -98,21 +106,21 @@ fun InitApp(
                 }
             }
 
-//            initResult?.isSuccess == true -> {
-//                AppNavigation(activity, paddingValues)
-//            }
-//
-//            else -> {
-//                when (val error = initResult?.exceptionOrNull()) {
-//                    is RustFfiException.AppStorageAlreadyInitialized -> {
-//                        AppNavigation(activity, paddingValues)
-//                    }
-//
-//                    else -> {
-//                        ShowAppError(error as RustFfiException, activity)
-//                    }
-//                }
-//            }
+            initResult?.isSuccess == true -> {
+                AppNavigation(mainActivity)
+            }
+
+            else -> {
+                when (val error = initResult?.exceptionOrNull()) {
+                    is RustFfiException.AppStorageAlreadyInitialized -> {
+                        AppNavigation(mainActivity)
+                    }
+
+                    else -> {
+                        ShowAppError(error as RustFfiException, mainActivity)
+                    }
+                }
+            }
         }
     }
 }

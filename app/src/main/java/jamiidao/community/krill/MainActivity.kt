@@ -31,30 +31,27 @@ class MainActivity : ComponentActivity() {
 
     val rootActivity = this
     private val appStateViewModel: AppStateViewModel by viewModels()
-    private val fcmError = mutableStateOf<String?>(null)
+
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        createSigningNotificationChannel(logExisting = true)
+
+        enableEdgeToEdge()
 
         lifecycleScope.launch {
             try {
                 val token = FirebaseMessaging.getInstance().token.await()
                 rustFnSetFcmToken(token)
             } catch (e: Exception) {
-                fcmError.value = e.message ?: "Failed to get FCM token"
+                app_log("Failed to get FCM token: ${e.message}")
             }
         }
 
-        createSigningNotificationChannel(logExisting = true)
-
-        enableEdgeToEdge()
-
         setContent {
             KrillTheme {
-
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    innerPadding;
-                    
                     Box(
                         contentAlignment = Alignment.Center,
                         modifier = Modifier
@@ -65,20 +62,7 @@ class MainActivity : ComponentActivity() {
                             modifier = Modifier
                                 .fillMaxSize()
                         )
-                        AppNavigation(mainActivity = rootActivity, appStateViewModel)
-                    }
-
-                    if (fcmError.value != null) {
-                        ShowErrorAsBottomSheet(
-                            title = "Notification Error",
-                            error = fcmError.value!!,
-                            imageID = R.drawable.error,
-                            imageDescription = "",
-                            buttonTextContent = "Ok",
-                            callback = {
-
-                            },
-                        )
+                        InitApp(mainActivity = rootActivity, appStateViewModel, innerPadding)
                     }
                 }
             }
