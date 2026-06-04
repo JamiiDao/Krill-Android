@@ -66,9 +66,7 @@ fun DashboardShell(
     mainActivity: MainActivity,
     navController: NavController,
 ) {
-
-
-    val dashboardNavController = rememberNavController()
+    val bottomNavController = rememberNavController()
 
     val items = listOf(
         BottomNavigationItem(
@@ -115,7 +113,7 @@ fun DashboardShell(
                             onClick = {
                                 haptic.performHapticFeedback(HapticFeedbackType.ContextClick)
                                 selectedItemIndex = index
-                                dashboardNavController.navigate(item.title)
+                                bottomNavController.navigate(item.title)
                             },
                             icon = {
                                 BadgedBox(
@@ -192,16 +190,16 @@ fun DashboardShell(
                 .background(Color.Transparent)
         ) {
             NavHost(
-                navController = dashboardNavController,
+                navController = bottomNavController,
                 startDestination = ROUTE_GROUPS,
                 modifier = Modifier.fillMaxSize()
             ) {
                 composable(ROUTE_GROUPS) {
-
+                    Memberships(mainActivity, navController, bottomNavController)
                 }
 
                 composable(ROUTE_SCAN_QR) {
-                    ScanQR(mainActivity, navController, dashboardNavController)
+                    ScanQR(mainActivity, navController, bottomNavController)
                 }
                 composable(ROUTE_PROFILE) { }
             }

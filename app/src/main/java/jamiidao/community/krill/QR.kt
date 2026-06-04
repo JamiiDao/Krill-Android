@@ -339,7 +339,7 @@ fun NotificationView(
             GlassButton(
                 callback = {
                     navController.navigate(DashboardRoute) {
-                        popUpTo(DashboardRoute) { inclusive = true }
+                        popUpTo(DashboardRoute) { inclusive = false }
                     }
                 },
                 textContent = "Skip", width = .4f,

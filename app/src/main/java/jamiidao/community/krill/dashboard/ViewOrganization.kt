@@ -22,10 +22,10 @@ import coil.ImageLoader
 import coil.compose.AsyncImage
 import coil.decode.SvgDecoder
 import jamiidao.community.krill.DashboardRoute
-import jamiidao.community.krill.ParticipantOrgInfo
 import jamiidao.community.krill.R
 import jamiidao.community.krill.RustFfiException
 import jamiidao.community.krill.RustTypeOrganizationInfo
+import jamiidao.community.krill.RustTypeStoredOrgInfoMetadata
 import jamiidao.community.krill.ViewOrganizationRoute
 import jamiidao.community.krill.components.AppText
 import jamiidao.community.krill.components.GlassButton
@@ -42,9 +42,8 @@ import jamiidao.community.krill.ui.theme.commitMonoFamily
 
 @Composable
 fun ViewOrganizationView(navController: NavController, sldTld: String) {
-    val context = LocalContext.current
     val state = remember { mutableStateOf(ComponentState.Fetching) }
-    val orgInfo = remember { mutableStateOf<ParticipantOrgInfo?>(null) }
+    val orgInfo = remember { mutableStateOf<RustTypeStoredOrgInfoMetadata?>(null) }
     val error = remember { mutableStateOf<String?>(null) }
 
     LaunchedEffect(Unit) {
@@ -56,12 +55,6 @@ fun ViewOrganizationView(navController: NavController, sldTld: String) {
             error.value = e.uiMessage()
         }
     }
-
-    val imageLoader = ImageLoader.Builder(context)
-        .components {
-            add(SvgDecoder.Factory())
-        }
-        .build()
 
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -83,62 +76,7 @@ fun ViewOrganizationView(navController: NavController, sldTld: String) {
 
             ComponentState.Done -> {
                 orgInfo.value?.let {
-                    KrillGlassSurface(
-                        modifier = Modifier.fillMaxWidth(.8f),
-                        percentage = 10,
-                        content = {
-                            Column(
-                                horizontalAlignment = Alignment.CenterHorizontally,
-                                verticalArrangement = Arrangement.Center,
-                                modifier = Modifier
-                            ) {
-                                AsyncImage(
-                                    model = it.orgInfo.logoIcon,
-                                    imageLoader = imageLoader,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(200.dp)
-                                )
-                                Spacer(Modifier.height(10.dp))
-                                AppText(
-                                    textContent = it.orgInfo.name,
-                                    fontSize = 28.sp,
-                                    fontFamily = bungeeHairlineFamily,
-                                    fontWeight = FontWeight.Black
-                                )
-                                Spacer(Modifier.height(5.dp))
-                                AppText(
-                                    textContent = sldTld,
-                                    fontSize = 18.sp,
-                                    fontFamily = commitMonoFamily,
-                                    color = CadmiumOrange
-                                )
-                                Spacer(Modifier.height(20.dp))
-                                AppText(
-                                    textContent = it.orgInfo.supportMail,
-                                    fontSize = 18.sp,
-                                    fontFamily = commitMonoFamily,
-                                )
-                                Spacer(Modifier.height(20.dp))
-                                AppText(
-                                    textContent = it.identity,
-                                    fontSize = 18.sp,
-                                    fontFamily = commitMonoFamily,
-                                )
-                                Spacer(Modifier.height(20.dp))
-                                AppText(
-                                    textContent = it.ecdvk,
-                                    fontSize = 18.sp,
-                                    fontFamily = commitMonoFamily,
-                                )
-                                Spacer(Modifier.height(20.dp))
-                                AppText(
-                                    textContent = it.avk,
-                                    fontSize = 18.sp,
-                                    fontFamily = commitMonoFamily,
-                                )
-                                Spacer(Modifier.height(20.dp))
-                            }
-                        })
+                    OrgDetails(navController, it)
                 } ?: Column(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.SpaceAround,
@@ -146,16 +84,6 @@ fun ViewOrganizationView(navController: NavController, sldTld: String) {
                 ) {
                     AppText(textContent = "Organization Not Found")
                     Spacer(Modifier.height(30.dp))
-                    GlassButton(
-                        textContent = "Ok",
-                        callback = {
-                            navController.navigate(DashboardRoute) {
-                                popUpTo(0)
-                            }
-                        },
-                        width = 0.8f,
-                        filled = true
-                    )
                 }
             }
         }
@@ -171,7 +99,7 @@ fun ViewOrganizationView(navController: NavController, sldTld: String) {
             callback = {
                 navController.navigate(DashboardRoute) {
                     popUpTo(navController.currentDestination?.id ?: return@navigate) {
-                        inclusive = true
+                        inclusive = false
                     }
                 }
             },
@@ -179,7 +107,63 @@ fun ViewOrganizationView(navController: NavController, sldTld: String) {
     }
 }
 
+@Composable
+fun OrgDetails(navController: NavController, metadata: RustTypeStoredOrgInfoMetadata) {
+    val context = LocalContext.current
+
+    val imageLoader = ImageLoader.Builder(context)
+        .components {
+            add(SvgDecoder.Factory())
+        }
+        .build()
+    Column(
+        verticalArrangement = Arrangement.SpaceAround,
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = Modifier.fillMaxSize()
+    ) {
+        KrillGlassSurface(
+            modifier = Modifier.fillMaxWidth(.8f),
+            percentage = 10,
+            content = {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center,
+                    modifier = Modifier
+                ) {
+                    AsyncImage(
+                        model = metadata.logoIcon,
+                        imageLoader = imageLoader,
+                        contentDescription = null,
+                        modifier = Modifier.size(200.dp)
+                    )
+                    Spacer(Modifier.height(10.dp))
+                    AppText(
+                        textContent = metadata.orgName,
+                        fontSize = 28.sp,
+                        fontFamily = bungeeHairlineFamily,
+                        fontWeight = FontWeight.Black
+                    )
+                    Spacer(Modifier.height(5.dp))
+                    AppText(
+                        textContent = metadata.sldTld,
+                        fontSize = 18.sp,
+                        fontFamily = commitMonoFamily,
+                        color = CadmiumOrange
+                    )
+                    Spacer(Modifier.height(20.dp))
+                    AppText(
+                        textContent = metadata.supportMail,
+                        fontSize = 18.sp,
+                        fontFamily = commitMonoFamily,
+                    )
+                    Spacer(Modifier.height(20.dp))
+                }
+            })
+    }
+}
+
 enum class ComponentState {
     Fetching,
     Done
 }
+

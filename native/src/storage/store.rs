@@ -202,4 +202,52 @@ impl AppStorage {
 
         Ok(fetched)
     }
+
+    pub(crate) async fn get_all(
+        &self,
+        table: TableDefinition<'static, &[u8], Vec<u8>>,
+    ) -> RustFfiResult<Vec<Vec<u8>>> {
+        let store = self.store.clone();
+
+        let fetched = blocking::unblock(move || {
+            let read_txn = store.begin_read()?;
+            let table = read_txn.open_table(table)?;
+
+            let fetched = table
+                .iter()?
+                .map(|inner_value| Ok::<_, redb::Error>(inner_value?.1.value()))
+                .collect::<Result<Vec<Vec<u8>>, redb::Error>>();
+
+            Ok::<_, redb::Error>(fetched)
+        })
+        .await??;
+
+        Ok(fetched)
+    }
+
+    pub(crate) async fn drop_table(
+        &self,
+        table: TableDefinition<'static, &[u8], Vec<u8>>,
+    ) -> RustFfiResult<()> {
+        let store = self.store.clone();
+
+        blocking::unblock(move || {
+            let write_txn = store.begin_write()?;
+
+            match write_txn.delete_table(table) {
+                Ok(_) => {}
+                Err(redb::TableError::TableDoesNotExist(_)) => {}
+                Err(e) => return Err(e.into()),
+            }
+
+            write_txn.open_table(table)?;
+
+            write_txn.commit()?;
+
+            Ok::<(), redb::Error>(())
+        })
+        .await?;
+
+        Ok(())
+    }
 }

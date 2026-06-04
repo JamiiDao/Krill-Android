@@ -1,9 +1,10 @@
 use std::sync::{LazyLock, OnceLock};
 
 use async_dup::Arc;
-use async_lock::RwLock;
+use async_lock::{OnceCell, RwLock};
+use krill_common::FrostCredentialSeed;
 
-use crate::{AppStorage, RustFfiError};
+use crate::{AppStorage, RustFfiError, StoredOrgInfo};
 
 pub const PKG_VERSION: &str = env!("CARGO_PKG_VERSION");
 
@@ -19,6 +20,9 @@ pub(crate) type FrostEd25519 = frost_ed25519::Ed25519Sha512;
 
 pub(crate) static FCM_TOKEN: LazyLock<Arc<RwLock<String>>> =
     LazyLock::new(|| Arc::new(RwLock::new(String::default())));
+
+pub(crate) static ORG_INFO: LazyLock<Arc<RwLock<Option<StoredOrgInfo>>>> =
+    LazyLock::new(|| Arc::new(RwLock::new(Option::default())));
 
 pub struct ClientUtils;
 
