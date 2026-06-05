@@ -46,8 +46,7 @@ object DashboardRoute
 object RequestNotificationPermissionRoute
 
 @Serializable
-data class ViewOrganizationRoute(val sldTld: String)
-
+data class ViewGroupActivitiesRoute(val sldTld: String)
 
 @Serializable
 object NewsRoute
@@ -83,11 +82,10 @@ fun AppNavigation(
             DashboardView(mainActivity, navController)
         }
 
-        composable<ViewOrganizationRoute> { backStackEntry ->
-            val routeData: ViewOrganizationRoute = backStackEntry.toRoute()
+        composable<ViewGroupActivitiesRoute> { backStackEntry ->
+            val routeData: ViewGroupActivitiesRoute = backStackEntry.toRoute()
             ViewOrganizationView(navController, routeData.sldTld)
         }
-
         composable(
             route = "{action}/{arguments}",
             deepLinks = listOf(navDeepLink {
