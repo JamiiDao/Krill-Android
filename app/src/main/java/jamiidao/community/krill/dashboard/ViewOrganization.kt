@@ -26,7 +26,7 @@ import jamiidao.community.krill.R
 import jamiidao.community.krill.RustFfiException
 import jamiidao.community.krill.RustTypeOrganizationInfo
 import jamiidao.community.krill.RustTypeStoredOrgInfoMetadata
-import jamiidao.community.krill.ViewOrganizationRoute
+import jamiidao.community.krill.ViewGroupActivitiesRoute
 import jamiidao.community.krill.components.AppText
 import jamiidao.community.krill.components.GlassButton
 import jamiidao.community.krill.components.KrillGlassSurface

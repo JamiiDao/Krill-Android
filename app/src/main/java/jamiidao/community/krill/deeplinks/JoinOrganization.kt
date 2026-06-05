@@ -27,8 +27,7 @@ import jamiidao.community.krill.DashboardRoute
 import jamiidao.community.krill.R
 import jamiidao.community.krill.RustFfiException
 import jamiidao.community.krill.RustTypeOrganizationInfo
-import jamiidao.community.krill.ViewOrganizationRoute
-import jamiidao.community.krill.app_log
+import jamiidao.community.krill.ViewGroupActivitiesRoute
 import jamiidao.community.krill.components.AppText
 import jamiidao.community.krill.components.GlassButton
 import jamiidao.community.krill.components.KrillGlassSurface
@@ -182,7 +181,7 @@ fun DisplayOrgInfo(
                         try {
                             rustFnJoin(sldTld, info)
 
-                            navController.navigate(ViewOrganizationRoute(sldTld)) {
+                            navController.navigate(ViewGroupActivitiesRoute(sldTld)) {
                                 popUpTo(0)
                             }
                         } catch (e: RustFfiException) {
