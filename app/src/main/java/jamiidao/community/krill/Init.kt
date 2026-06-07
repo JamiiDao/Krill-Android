@@ -3,7 +3,6 @@ package jamiidao.community.krill
 import android.app.Application
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
@@ -11,114 +10,67 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.AndroidViewModel
-import androidx.lifecycle.viewModelScope
-import androidx.lifecycle.viewmodel.compose.viewModel
-import com.google.firebase.messaging.FirebaseMessaging
 import jamiidao.community.krill.components.AppText
 import jamiidao.community.krill.components.GlassButton
 import jamiidao.community.krill.components.KrillLogo
-import jamiidao.community.krill.components.KrillStripedLoader
-import jamiidao.community.krill.components.ShowErrorAsBottomSheet
 import jamiidao.community.krill.ui.theme.CadmiumOrange
-import jamiidao.community.krill.ui.theme.bungeeHairlineFamily
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.tasks.await
+import kotlinx.coroutines.runBlocking
 
-class AppStateViewModel(application: Application) : AndroidViewModel(application) {
+class KrillApplication : Application() {
 
-    private val appStorageDir = getApplication<Application>()
-        .filesDir.absolutePath
-    private val _appState = MutableStateFlow<Result<Unit>?>(null)
-    val appState: StateFlow<Result<Unit>?> = _appState
+    @Volatile
+    var initResult: Result<Unit>? = null
+        private set
 
-    init {
-        viewModelScope.launch {
-            _appState.value = initNative(appStorageDir)
-        }
-    }
+    override fun onCreate() {
+        app_log("APPLICATION START")
 
-    private suspend fun initNative(appStorageDir: String): Result<Unit> {
-        return try {
-            rustFnInitDb(appStorageDir)
-            Result.success(Unit)
-        } catch (e: RustFfiException) {
-            Result.failure(e)
+        super.onCreate()
+
+        try {
+            runBlocking {
+                rustFnInitDb(filesDir.absolutePath)
+            }
+
+            initResult = Result.success(Unit)
+
+        } catch (e: Throwable) {
+            initResult = Result.failure(e)
         }
     }
 }
 
-
 @Composable
 fun InitApp(
-    mainActivity: MainActivity,
-    appStateViewModel: AppStateViewModel = viewModel(),
-    paddingValues: PaddingValues
+    mainActivity: MainActivity
 ) {
-    val initResult by appStateViewModel.appState.collectAsState() // Result<Unit>?
+    val app =
+        LocalContext.current.applicationContext as KrillApplication
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(paddingValues = paddingValues)
-    ) {
-        when {
-            initResult == null -> {
-                Column(
-                    verticalArrangement = Arrangement.SpaceAround,
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    modifier = Modifier.fillMaxSize()
-                ) {
-                    Column(
-                        verticalArrangement = Arrangement.Center,
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        modifier = Modifier.weight(1f)
-                    ) {
-                        KrillLogo()
-                        Spacer(Modifier.height(10.dp))
-                    }
-                    Column(
-                        verticalArrangement = Arrangement.Top,
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        modifier = Modifier.weight(1f)
-                    ) {
-                        AppText(
-                            textContent = "INITIALIZING APP",
-                            fontSize = 25.sp,
-                            fontWeight = FontWeight.Bold,
-                            fontFamily = bungeeHairlineFamily
-                        )
-                        Spacer(Modifier.height(10.dp))
-                        KrillStripedLoader()
-                    }
+    val initResult = app.initResult
+
+    when {
+        initResult == null -> {
+            // should never happen if runBlocking completed
+        }
+
+        initResult.isSuccess -> {
+            AppNavigation(mainActivity)
+        }
+
+        else -> {
+            when (val error = initResult.exceptionOrNull()) {
+                is RustFfiException.AppStorageAlreadyInitialized -> {
+                    AppNavigation(mainActivity)
                 }
-            }
 
-            initResult?.isSuccess == true -> {
-                AppNavigation(mainActivity)
-            }
-
-            else -> {
-                when (val error = initResult?.exceptionOrNull()) {
-                    is RustFfiException.AppStorageAlreadyInitialized -> {
-                        AppNavigation(mainActivity)
-                    }
-
-                    else -> {
-                        ShowAppError(error as RustFfiException, mainActivity)
-                    }
+                is RustFfiException -> {
+                    ShowAppError(error, mainActivity)
                 }
             }
         }

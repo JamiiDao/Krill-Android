@@ -27,7 +27,10 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.navigation.NavController
 import jamiidao.community.krill.AppNavigation
+import jamiidao.community.krill.DashboardRoute
+import jamiidao.community.krill.R
 import jamiidao.community.krill.ui.theme.CadmiumOrange
 import jamiidao.community.krill.ui.theme.ModalColor
 import jamiidao.community.krill.ui.theme.MysticBlack
@@ -37,9 +40,9 @@ import kotlinx.coroutines.launch
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ShowErrorAsBottomSheet(
-    title: String,
+    title: String = "Encountered Error",
     error: String,
-    imageID: Int,
+    imageID: Int = R.drawable.error,
     imageDescription: String,
     buttonTextContent: String,
     callback: () -> Unit
@@ -123,6 +126,88 @@ fun ShowErrorAsBottomSheet(
                     )
                 }
             }
+        }
+    }
+}
+
+
+@Composable
+fun ShowErrorAsNormalView(
+    navController: NavController,
+    title: String = "Encountered Error",
+    error: String,
+    imageID: Int = R.drawable.error,
+    imageDescription: String = "",
+    buttonTextContent: String = "Ok",
+    glassSurface: Boolean = true
+) {
+    val scrollState = rememberScrollState()
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(scrollState)
+            .padding(12.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.SpaceAround
+    ) {
+        KrillGlassSurface(
+            percentage = 10,
+            show = glassSurface,
+            content = {
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize(), horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(20.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.Center
+                    ) {
+                        Image(
+                            painter = painterResource(id = imageID),
+                            contentDescription = imageDescription,
+                            modifier = Modifier
+                                .size(50.dp)
+                                .padding(5.dp)
+                        )
+
+                        AppText(
+                            textContent = title,
+                            fontSize = 20.sp,
+                            color = CadmiumOrange,
+                            fontFamily = commitMonoFamily
+                        )
+                    }
+                    Box(
+                        contentAlignment = Alignment.Center,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(20.dp)
+                            .defaultMinSize(minHeight = 100.dp)
+                    ) {
+                        AppText(textContent = error, fontSize = 20.sp)
+                    }
+                }
+            }
+        )
+
+        Row(
+            Modifier
+                .fillMaxWidth()
+                .padding(20.dp),
+            horizontalArrangement = Arrangement.Center,
+            verticalAlignment = Alignment.Bottom
+        ) {
+            GlassButton(
+                callback = {
+                    navController.navigate(DashboardRoute)
+                },
+                textContent = buttonTextContent,
+            )
         }
     }
 }

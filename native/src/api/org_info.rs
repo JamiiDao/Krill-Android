@@ -1,9 +1,11 @@
-use frost_dkg_types::{AsymmetricKeypairBytes, EphemeralClientDeviceKeypair, FrostCredentialSeed};
+use std::path::Path;
+
+use frost_dkg_types::FrostCredentialSeed;
 use krill_common::{JoinPayload, OrganizationInfo, QuicProtocolOp};
 
 use crate::{
-    QuicClient, RustFfiError, RustTypeOrganizationInfo, RustTypeStoredOrgInfoMetadata,
-    StoredOrgInfo, FCM_TOKEN,
+    api::init::FcmTokenDetails, QuicClient, RustFfiError, RustTypeOrganizationInfo,
+    RustTypeStoredOrgInfoMetadata, StoredOrgInfo,
 };
 
 #[uniffi::export]
@@ -31,7 +33,7 @@ async fn rust_fn_fetch_org_info(sld_tld: String) -> Result<RustTypeOrganizationI
 
 #[uniffi::export]
 async fn rust_fn_get_orgs_metadata() -> Result<Vec<RustTypeStoredOrgInfoMetadata>, RustFfiError> {
-    crate::app_storage()?.get_all_orgs().await
+    crate::app_storage()?.get_all_orgs_ffi().await
 }
 
 #[uniffi::export]
@@ -40,8 +42,28 @@ async fn rust_fn_clear_org_info() -> Result<(), RustFfiError> {
 }
 
 #[uniffi::export]
-async fn rust_fn_join(sld_tld: String, info: RustTypeOrganizationInfo) -> Result<(), RustFfiError> {
-    let mut stored_org_info;
+async fn rust_fn_join(
+    app_storage_path: String,
+    sld_tld: String,
+    info: RustTypeOrganizationInfo,
+    token: String,
+) -> Result<(), RustFfiError> {
+    crate::ClientUtils::log_to_logcat(&format!(
+        "App storage dir rust_fn_join load: {app_storage_path:?} - {token}"
+    ));
+
+    let identity = FrostCredentialSeed::new_anonymous::<crate::FrostEd25519>()?;
+
+    let stored_org_info;
+
+    let fcm_token_details = FcmTokenDetails::load(
+        &app_storage_path,
+        token,
+        false,
+        Some((&sld_tld, &identity.seed())),
+        true,
+    )
+    .await?;
 
     if let Some(org_exists) = crate::app_storage()?.get_org_info(&sld_tld).await? {
         crate::ClientUtils::log_to_logcat("ORG EXISTS");
@@ -50,53 +72,36 @@ async fn rust_fn_join(sld_tld: String, info: RustTypeOrganizationInfo) -> Result
     } else {
         crate::ClientUtils::log_to_logcat("ORG NOT FOUND");
 
-        let edkp = EphemeralClientDeviceKeypair::new()?;
-        let akp = AsymmetricKeypairBytes::new()?;
-        let identity = FrostCredentialSeed::new_anonymous::<crate::FrostEd25519>()?;
-
         let org_info: OrganizationInfo = info.into();
 
         stored_org_info = StoredOrgInfo {
             sld_tld: sld_tld.clone(),
-            registered: false,
             org_info,
-            edkp,
-            akp,
             identity,
         };
 
-        crate::app_storage()?
-            .set_org_info(&sld_tld, stored_org_info.clone())
-            .await?;
+        let payload = JoinPayload {
+            identity: stored_org_info.identity.seed().to_string(),
+            fcm_token: fcm_token_details.token,
+        };
 
-        crate::ORG_INFO
-            .write()
-            .await
-            .replace(stored_org_info.clone());
-    }
-
-    let payload = JoinPayload {
-        identity: stored_org_info.identity.seed().to_string(),
-        fcm_token: FCM_TOKEN.read().await.clone(),
-        edvk: stored_org_info.edkp.verifying_key_encodable(),
-        akp: stored_org_info.akp.verifying_key_encodable(),
-    };
-
-    if stored_org_info.registered {
-        crate::ClientUtils::log_to_logcat("BACKEND ALREADY REGISTER");
-
-        Ok(())
-    } else {
         let payload = QuicProtocolOp::Join(payload);
+
+        crate::ClientUtils::log_to_logcat(&format!("JOIN Payload:{payload:?}"));
 
         QuicClient::connect::<()>(&sld_tld, &payload).await?;
 
         crate::ClientUtils::log_to_logcat("BACKEND REGISTER SUCCESS");
 
-        stored_org_info.registered = true;
-
         crate::app_storage()?
             .set_org_info(&sld_tld, stored_org_info.clone())
-            .await
+            .await?;
     }
+
+    crate::ORG_INFO
+        .write()
+        .await
+        .replace(stored_org_info.clone());
+
+    Ok(())
 }

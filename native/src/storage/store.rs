@@ -19,6 +19,7 @@ impl AppStorage {
                 let write_txn = store.begin_write()?;
 
                 write_txn.open_table(Self::ORG_INFO_TABLE)?;
+                write_txn.open_table(Self::ACTIVITIES_TABLE)?;
 
                 write_txn.commit()?;
             }

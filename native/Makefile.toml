@@ -64,6 +64,7 @@ dependencies = ["generate_bindings_x86_64"]
 [tasks.build_arm]
 script = '''
 echo -------- FINISHED BUILDING OPS FOR ARM ---------
+date +"%Y-%m-%d %H:%M:%S.%N"
 '''
 dependencies = ["copy_kotlin_bindings_arm"]
 
@@ -71,6 +72,7 @@ dependencies = ["copy_kotlin_bindings_arm"]
 [tasks.build_x86_64]
 script = '''
 echo -------- FINISHED BUILDING OPS FOR ARM ---------
+date +"%Y-%m-%d %H:%M:%S.%N"
 '''
 dependencies = ["copy_kotlin_bindings_x86_64"]
 
@@ -125,6 +127,7 @@ dependencies = ["generate_bindings_x86_64_debug"]
 [tasks.build_arm_debug]
 script = '''
 echo -------- FINISHED DEBUG BUILD FOR ARM ---------
+date +"%Y-%m-%d %H:%M:%S.%N"
 '''
 dependencies = ["copy_kotlin_bindings_arm_debug"]
 
@@ -132,5 +135,6 @@ dependencies = ["copy_kotlin_bindings_arm_debug"]
 [tasks.build_x86_64_debug]
 script = '''
 echo -------- FINISHED DEBUG BUILD FOR ARM ---------
+date +"%Y-%m-%d %H:%M:%S.%N"
 '''
 dependencies = ["copy_kotlin_bindings_x86_64_debug"]

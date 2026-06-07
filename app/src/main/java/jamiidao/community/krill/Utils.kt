@@ -1,6 +1,9 @@
 package jamiidao.community.krill
 
+import android.app.Application
+import android.content.Context
 import android.util.Log
+import androidx.camera.core.impl.utils.ContextUtil.getApplication
 import kotlin.text.startsWith
 
 fun app_log(message: String) {
@@ -9,4 +12,8 @@ fun app_log(message: String) {
 
 fun isValidDeeplink(value: String): Boolean {
     return value.startsWith("krill://join") || value.startsWith("krill://dkg")
+}
+
+fun appStoragePath(context: Context): String {
+    return context.filesDir.absolutePath
 }

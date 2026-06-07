@@ -25,12 +25,18 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import androidx.core.net.toUri
+import com.google.firebase.messaging.FirebaseMessaging
+import jamiidao.community.krill.RustFfiException
+import jamiidao.community.krill.rustFnSetFcmToken
+import kotlinx.coroutines.tasks.await
 
 class FGCMService : FirebaseMessagingService() {
 
     private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
 
     override fun onMessageReceived(message: RemoteMessage) {
+        app_log("FCM onMessageReceived START")
+
         scope.launch {
             val info = RustTypeReceivedNotificationData(
                 data = message.data["base64_encoded"],
@@ -52,8 +58,19 @@ class FGCMService : FirebaseMessagingService() {
     }
 
     override fun onNewToken(token: String) {
-        app_log(token)
-        // send token to backend here
+        app_log("FCM onNewToken START")
+
+        val filesPath = filesDir.absolutePath
+
+        scope.launch {
+            try {
+
+                rustFnSetFcmToken(filesPath, token)
+                app_log("Received onNewToken request from FCM")
+            } catch (e: RustFfiException) {
+                app_log("Failed to set FCM token from `onNewToken` event: ${e.uiMessage()}")
+            }
+        }
     }
 
     private fun sendNotification(message: RustTypeFetchedNotificationInfo) {

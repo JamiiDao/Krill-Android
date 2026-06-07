@@ -26,18 +26,25 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import androidx.navigation.navDeepLink
 import androidx.navigation.toRoute
+import com.google.firebase.messaging.FirebaseMessaging
 import jamiidao.community.krill.components.KrillBorderRing
 import jamiidao.community.krill.components.KrillGlassSurface
 import jamiidao.community.krill.components.KrillLogo
 import jamiidao.community.krill.components.KrillStripedLoader
+import jamiidao.community.krill.components.ShowErrorAsNormalView
+import jamiidao.community.krill.dashboard.ActivityMetadata
 import jamiidao.community.krill.dashboard.DashboardShell
+import jamiidao.community.krill.dashboard.SuccessView
 import jamiidao.community.krill.dashboard.ViewOrganizationView
 import jamiidao.community.krill.deeplinks.JoinOrganization
 import jamiidao.community.krill.notifications_module.RequestNotificationPermissionScreen
 import jamiidao.community.krill.notifications_module.hasNotificationPermission
 import jamiidao.community.krill.notifications_module.needsNotificationPermission
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.tasks.await
 import kotlinx.serialization.Serializable
+import java.time.ZoneId
+import java.time.ZonedDateTime
 
 @Serializable
 object DashboardRoute
@@ -57,11 +64,35 @@ object SecurityRoute
 @Serializable
 object UpdatesRoute
 
+@Serializable
+data class ErrorRoute(
+    val title: String = "Encountered Error",
+    val error: String,
+    val imageID: Int = R.drawable.error,
+    val imageDescription: String = "",
+    val buttonTextContent: String = "Ok",
+    val glassSurface: Boolean = true
+)
+
+
 @Composable
 fun AppNavigation(
     mainActivity: MainActivity,
 ) {
     val navController = rememberNavController()
+    val appDirPath = appStoragePath(LocalContext.current)
+
+    LaunchedEffect(Unit) {
+        try {
+            val token = FirebaseMessaging.getInstance().token.await()
+            rustFnSetFcmToken(appDirPath, token)
+            app_log("Received FCM token")
+        } catch (e: RustFfiException) {
+            app_log("Failed to send FCM token: ${e.uiMessage()}")
+
+        }
+
+    }
 
     NavHost(
         navController = navController,
@@ -80,6 +111,17 @@ fun AppNavigation(
 
         composable<DashboardRoute> {
             DashboardView(mainActivity, navController)
+
+//            val data = RustTypeActivityMetadata(
+//                creator = "kcharleschege@gmail.com",
+//                name = "Transfer SOL",
+//                timestamp = "Sunday, 07 June 2026 12:52:33",
+//                spend = "0.5",
+//                threshold = 2u
+//            );
+//
+//            SuccessView(navController, data)
+
         }
 
         composable<ViewGroupActivitiesRoute> { backStackEntry ->
@@ -113,7 +155,7 @@ fun AppNavigation(
                     }
 
                     "dkg" -> {
-                        DeepLinked("$action/$argumentData")
+                        ActivityMetadata(navController, argumentData)
                     }
 
                     else -> {
@@ -159,8 +201,18 @@ fun AppNavigation(
         ) {
             UpdatesScreen()
         }
+
+        composable<ErrorRoute> { backStackEntry ->
+            val routeData: ErrorRoute = backStackEntry.toRoute()
+            ShowErrorAsNormalView(
+                navController,
+                title = routeData.title,
+                error = routeData.error,
+            )
+        }
     }
 }
+
 
 @Composable
 fun DashboardView(mainActivity: MainActivity, navController: NavController) {
@@ -174,14 +226,6 @@ fun DashboardView(mainActivity: MainActivity, navController: NavController) {
             mainActivity, navController,
         )
     }
-}
-
-
-@Composable
-fun DeepLinked(data: String?) {
-    Text(
-        text = "Deeplinked-> $data",
-    )
 }
 
 @Composable

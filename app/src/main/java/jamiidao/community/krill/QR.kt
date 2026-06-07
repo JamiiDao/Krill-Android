@@ -352,7 +352,6 @@ fun NotificationView(
                 width = 1f, filled = true
             )
         }
-
     }
 }
 
