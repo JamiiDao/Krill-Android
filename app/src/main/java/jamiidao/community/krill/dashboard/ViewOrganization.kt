@@ -9,6 +9,8 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -22,11 +24,16 @@ import coil.ImageLoader
 import coil.compose.AsyncImage
 import coil.decode.SvgDecoder
 import jamiidao.community.krill.DashboardRoute
+import jamiidao.community.krill.QuicBidirectionalEmitter
+import jamiidao.community.krill.QuicBidirectionalListener
 import jamiidao.community.krill.R
 import jamiidao.community.krill.RustFfiException
+import jamiidao.community.krill.RustTypeActivityMetadata
+import jamiidao.community.krill.RustTypeMinMax
 import jamiidao.community.krill.RustTypeOrganizationInfo
 import jamiidao.community.krill.RustTypeStoredOrgInfoMetadata
 import jamiidao.community.krill.ViewGroupActivitiesRoute
+import jamiidao.community.krill.app_log
 import jamiidao.community.krill.components.AppText
 import jamiidao.community.krill.components.GlassButton
 import jamiidao.community.krill.components.KrillGlassSurface
@@ -38,6 +45,12 @@ import jamiidao.community.krill.rustFnLoadStoredOrganizationInfo
 import jamiidao.community.krill.ui.theme.CadmiumOrange
 import jamiidao.community.krill.ui.theme.bungeeHairlineFamily
 import jamiidao.community.krill.ui.theme.commitMonoFamily
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.launch
 
 
 @Composable
@@ -45,6 +58,7 @@ fun ViewOrganizationView(navController: NavController, sldTld: String) {
     val state = remember { mutableStateOf(ComponentState.Fetching) }
     val orgInfo = remember { mutableStateOf<RustTypeStoredOrgInfoMetadata?>(null) }
     val error = remember { mutableStateOf<String?>(null) }
+
 
     LaunchedEffect(Unit) {
         try {
@@ -55,6 +69,15 @@ fun ViewOrganizationView(navController: NavController, sldTld: String) {
             error.value = e.uiMessage()
         }
     }
+
+    when (state.value) {
+        ComponentState.Done -> {
+            app_log("FETCHING SINCE DONE")
+        }
+
+        else -> {}
+    }
+
 
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -109,6 +132,14 @@ fun ViewOrganizationView(navController: NavController, sldTld: String) {
 
 @Composable
 fun OrgDetails(navController: NavController, metadata: RustTypeStoredOrgInfoMetadata) {
+    val activityId =
+        "7ABEFD7EE576EC104F2506F9413EC9FA30F4C73F5C612FE429F74DD926E2DD773F3C5FC63806CD9FD561C0E1008EE3F7"
+
+    val dkgHandler = remember { RustDkgHandler(metadata.sldTld, activityId) }
+
+    val dataOutcome by dkgHandler.state.collectAsState()
+
+
     val context = LocalContext.current
 
     val imageLoader = ImageLoader.Builder(context)
@@ -159,6 +190,10 @@ fun OrgDetails(navController: NavController, metadata: RustTypeStoredOrgInfoMeta
                     Spacer(Modifier.height(20.dp))
                 }
             })
+
+        Spacer(Modifier.height(10.dp))
+
+        AppText(textContent = dataOutcome, fontSize = 18.sp)
     }
 }
 
@@ -167,3 +202,28 @@ enum class ComponentState {
     Done
 }
 
+
+class RustDkgHandler(val domainOrIp: String, activityId: String) : QuicBidirectionalListener {
+
+    private val emitter = QuicBidirectionalEmitter()
+
+    val state = MutableStateFlow("Waiting...")
+
+    private val scope = CoroutineScope(
+        SupervisorJob() + Dispatchers.IO
+    )
+
+    init {
+        scope.launch {
+            emitter.start(this@RustDkgHandler, domainOrIp, activityId)
+        }
+    }
+
+    fun close() {
+        scope.cancel()
+    }
+
+    override fun onTick(value: String) {
+        state.value = value
+    }
+}

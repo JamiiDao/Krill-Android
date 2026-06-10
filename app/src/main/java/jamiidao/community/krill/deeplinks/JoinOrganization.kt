@@ -19,15 +19,19 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.lifecycleScope
 import androidx.navigation.NavController
 import coil.ImageLoader
 import coil.compose.AsyncImage
 import coil.decode.SvgDecoder
+import com.google.firebase.messaging.FirebaseMessaging
 import jamiidao.community.krill.DashboardRoute
 import jamiidao.community.krill.R
 import jamiidao.community.krill.RustFfiException
 import jamiidao.community.krill.RustTypeOrganizationInfo
 import jamiidao.community.krill.ViewGroupActivitiesRoute
+import jamiidao.community.krill.appStoragePath
+import jamiidao.community.krill.app_log
 import jamiidao.community.krill.components.AppText
 import jamiidao.community.krill.components.GlassButton
 import jamiidao.community.krill.components.KrillGlassSurface
@@ -36,10 +40,12 @@ import jamiidao.community.krill.components.KrillStripedLoader
 import jamiidao.community.krill.components.ShowErrorAsBottomSheet
 import jamiidao.community.krill.rustFnFetchOrgInfo
 import jamiidao.community.krill.rustFnJoin
+import jamiidao.community.krill.rustFnSetFcmToken
 import jamiidao.community.krill.ui.theme.CadmiumOrange
 import jamiidao.community.krill.ui.theme.bungeeHairlineFamily
 import jamiidao.community.krill.ui.theme.commitMonoFamily
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.tasks.await
 
 
 @Composable
@@ -47,6 +53,7 @@ fun JoinOrganization(
     navController: NavController,
     sldTld: String
 ) {
+
     val orgInfo = remember { mutableStateOf<RustTypeOrganizationInfo?>(null) }
 
     val context = LocalContext.current
@@ -110,6 +117,8 @@ fun DisplayOrgInfo(
     navController: NavController,
     sldTld: String, info: RustTypeOrganizationInfo, imageLoader: ImageLoader
 ) {
+    val appStoragePathFetched = appStoragePath(LocalContext.current)
+
     val scope = rememberCoroutineScope()
     val error = remember { mutableStateOf<RustFfiException?>(null) }
 
@@ -177,9 +186,17 @@ fun DisplayOrgInfo(
                 textContent = "Join",
                 width = 0.8f, filled = true,
                 callback = {
+                    app_log("JOIN $appStoragePathFetched")
                     scope.launch {
                         try {
-                            rustFnJoin(sldTld, info)
+                            val token = FirebaseMessaging.getInstance().token.await()
+
+                            rustFnJoin(
+                                appStoragePath = appStoragePathFetched,
+                                sldTld,
+                                info,
+                                token
+                            )
 
                             navController.navigate(ViewGroupActivitiesRoute(sldTld)) {
                                 popUpTo(0)

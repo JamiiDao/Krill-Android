@@ -27,7 +27,9 @@ impl AppStorage {
             .transpose()
     }
 
-    pub(crate) async fn get_all_orgs(&self) -> RustFfiResult<Vec<RustTypeStoredOrgInfoMetadata>> {
+    pub(crate) async fn get_all_orgs_ffi(
+        &self,
+    ) -> RustFfiResult<Vec<RustTypeStoredOrgInfoMetadata>> {
         let orgs = self.get_all(Self::ORG_INFO_TABLE).await?;
 
         orgs.into_iter()
@@ -35,6 +37,19 @@ impl AppStorage {
                 let org = bitcode::decode::<StoredOrgInfo>(&bytes)
                     .or(Err(RustFfiError::UnableToDecodeStoredOrgInfo))?;
                 let org: RustTypeStoredOrgInfoMetadata = org.into();
+
+                Ok::<_, RustFfiError>(org)
+            })
+            .collect()
+    }
+
+    pub(crate) async fn get_all_orgs(&self) -> RustFfiResult<Vec<StoredOrgInfo>> {
+        let orgs = self.get_all(Self::ORG_INFO_TABLE).await?;
+
+        orgs.into_iter()
+            .map(|bytes| {
+                let org = bitcode::decode::<StoredOrgInfo>(&bytes)
+                    .or(Err(RustFfiError::UnableToDecodeStoredOrgInfo))?;
 
                 Ok::<_, RustFfiError>(org)
             })
@@ -49,17 +64,13 @@ impl AppStorage {
 #[derive(Debug, Clone, PartialEq, Eq, Encode, Decode)]
 pub(crate) struct StoredOrgInfo {
     pub(crate) sld_tld: String,
-    pub(crate) registered: bool,
     pub(crate) org_info: OrganizationInfo,
-    pub(crate) edkp: EphemeralClientDeviceKeypair,
-    pub(crate) akp: AsymmetricKeypairBytes,
     pub(crate) identity: FrostCredentialSeed,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Encode, Decode, uniffi::Record)]
 pub struct RustTypeStoredOrgInfoMetadata {
     pub sld_tld: String,
-    pub registered: bool,
     pub org_name: String,
     pub logo_icon: Vec<u8>,
     pub support_mail: String,
@@ -70,21 +81,12 @@ impl From<StoredOrgInfo> for RustTypeStoredOrgInfoMetadata {
     fn from(info: StoredOrgInfo) -> Self {
         Self {
             sld_tld: info.sld_tld,
-            registered: info.registered,
             org_name: info.org_info.name,
             logo_icon: info.org_info.logo_icon,
             support_mail: info.org_info.support_mail,
             identity: info.identity.seed().to_string(),
         }
     }
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct ParticipantOrgInfo {
-    pub(crate) ecdvk: String,
-    pub(crate) avk: String,
-    pub(crate) org_info: RustTypeOrganizationInfo,
-    pub(crate) identity: String,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, uniffi::Record)]

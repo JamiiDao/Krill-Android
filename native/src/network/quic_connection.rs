@@ -4,10 +4,7 @@ use std::{
 };
 
 use bitcode::{Decode, DecodeOwned, Encode};
-use krill_common::{
-    KrillError, QuicCommon, QuicProtocolOp, QuicTransmissionEncoder, QuicTransmissionError,
-    QuicTransmissionResult,
-};
+use krill_common::{QuicCommon, QuicTransmissionEncoder, QuicTransmissionError, RandomBytes};
 
 use quinn::{
     crypto::rustls::{NoInitialCipherSuite, QuicClientConfig},
@@ -28,6 +25,41 @@ impl QuicClient {
         sld_tld: &str,
         payload: &(impl Encode + Decode<'static>),
     ) -> Result<T, QuicTransmissionError> {
+        let (mut send, mut recv) = Self::setup_connect(sld_tld).await?.open_bi().await?;
+
+        let encoded_payload = bitcode::encode(payload);
+
+        let len = (encoded_payload.len() as u32).to_be_bytes();
+
+        send.write_all(&len).await?;
+
+        send.write_all(&encoded_payload).await?;
+
+        // signal end of request
+        send.finish()?;
+
+        let mut len_buf = [0u8; 4];
+
+        recv.read_exact(&mut len_buf).await?;
+
+        let len = u32::from_be_bytes(len_buf) as usize;
+
+        let mut response = vec![0u8; len];
+
+        recv.read_exact(&mut response).await?;
+
+        if response.is_empty() {
+            return Err(QuicTransmissionError::InvalidResponsePayload);
+        }
+
+        if response[0] == 0 {
+            QuicTransmissionEncoder::decode_success::<T>(&response[1..])
+        } else {
+            Err(QuicTransmissionEncoder::decode_failure(&response[1..]))
+        }
+    }
+
+    pub async fn setup_connect(sld_tld: &str) -> Result<quinn::Connection, QuicTransmissionError> {
         let (mut socket_addr, server_name, classification) = Self::resolve(sld_tld).await?;
 
         let client_config = if classification == IpClassification::Internet {
@@ -37,43 +69,49 @@ impl QuicClient {
                 .map_err(|error| QuicTransmissionError::Rustls(error.to_string()))?
         };
 
-        // TODO: Random port avoid DDoS
-        let mut endpoint = Endpoint::client(QuicCommon::CLIENT_ADDR)?;
+        let mut random_u16: u16;
+        let mut endpoint: Endpoint;
+
+        loop {
+            let random_inner = RandomBytes::<2>::generate().map_err(|error| {
+                crate::ClientUtils::log_to_logcat(&format!(
+                    "Unable to generate randomness for port! {:?}",
+                    error
+                ));
+
+                QuicTransmissionError::Randomness
+            })?;
+
+            random_u16 = u16::from_le_bytes(*random_inner.take());
+
+            if random_u16 < 1024 {
+                continue;
+            } else {
+                let socket = SocketAddr::new(QuicCommon::UNSPECIFIED_V4, random_u16);
+                match Endpoint::client(socket) {
+                    Ok(value) => {
+                        endpoint = value;
+                        break;
+                    }
+                    Err(error) => {
+                        if error.kind() == std::io::ErrorKind::AddrInUse {
+                            continue;
+                        } else {
+                            return Err(error.into());
+                        }
+                    }
+                }
+            }
+        }
+
         socket_addr.set_port(QuicCommon::SERVER_PORT);
 
         // TODO set better timeout
 
         endpoint.set_default_client_config(client_config);
         // Connect to the server passing in the server name which is supposed to be in the server certificate.
-        let connection = endpoint.connect(socket_addr, &server_name)?.await?;
-        let (mut send, mut recv) = connection.open_bi().await?;
 
-        let encoded_payload = bitcode::encode(payload);
-        send.write_all(&encoded_payload).await?;
-
-        send.finish()?;
-
-        let mut buf = [0u8; krill_common::BUFFER_CAPACITY];
-        let mut response = Vec::new();
-
-        loop {
-            let n = match recv.read(&mut buf).await? {
-                Some(n) => n,
-                None => break, // stream finished
-            };
-
-            response.extend_from_slice(&buf[..n]);
-        }
-
-        if let Some(value) = response.first() {
-            if *value == 0 {
-                QuicTransmissionEncoder::decode_success::<T>(&response[1..])
-            } else {
-                Err(QuicTransmissionEncoder::decode_failure(&response[1..]))
-            }
-        } else {
-            Err(QuicTransmissionError::InvalidResponsePayload)
-        }
+        Ok(endpoint.connect(socket_addr, &server_name)?.await?)
     }
 
     fn configure_client() -> Result<ClientConfig, NoInitialCipherSuite> {

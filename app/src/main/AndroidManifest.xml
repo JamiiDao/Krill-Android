@@ -3,9 +3,14 @@
 
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-feature android:name="android.hardware.camera.any" />
+
     <uses-permission android:name="android.permission.CAMERA" />
-    
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
+
+
     <application
+        android:name=".KrillApplication"
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
         android:fullBackupContent="@xml/backup_rules"
@@ -14,15 +19,17 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.Krill">
+
         <activity
             android:name=".MainActivity"
             android:exported="true"
             android:theme="@style/Theme.Krill">
+
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
-
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
 
@@ -33,7 +40,6 @@
             </intent-filter>
 
             <intent-filter android:autoVerify="true">
-
                 <action android:name="android.intent.action.VIEW" />
 
                 <category android:name="android.intent.category.DEFAULT" />
@@ -44,17 +50,24 @@
                 <data android:pathPrefix="/news" />
                 <data android:pathPrefix="/security" />
                 <data android:pathPrefix="/updates" />
-
             </intent-filter>
+
         </activity>
 
         <service
             android:name="jamiidao.community.krill.notifications_module.FGCMService"
             android:exported="false">
+
             <intent-filter>
                 <action android:name="com.google.firebase.MESSAGING_EVENT" />
             </intent-filter>
+
         </service>
+
+        <service
+            android:name=".frostServices.FrostDkgHandler"
+            android:foregroundServiceType="dataSync"
+            android:exported="false" />
 
     </application>
 

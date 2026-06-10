@@ -5,6 +5,8 @@ pub type RustFfiResult<T> = Result<T, RustFfiError>;
 
 #[derive(Debug, PartialEq, Eq, uniffi::Error, thiserror::Error)]
 pub enum RustFfiError {
+    #[error("The FCM token in the file is invalid")]
+    InvalidFcmTokenData,
     #[error("App storage already initialized")]
     AppStorageAlreadyInitialized,
     #[error("App storage not initialized")]
@@ -23,6 +25,14 @@ pub enum RustFfiError {
     Security(String),
     #[error("Unable to decode the bytes into `StoredOrgInfo`")]
     UnableToDecodeStoredOrgInfo,
+    #[error("The deeplink for krill://dkg provided was invalid")]
+    InvalidActivityDeeplink,
+    #[error("The organization was not found!")]
+    OrgNotFound,
+    #[error("{0}")]
+    Frost(String),
+    #[error("The activity id is invalid")]
+    InvalidActivityId,
 }
 
 #[uniffi::export]
