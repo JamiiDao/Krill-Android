@@ -1,23 +1,10 @@
 package jamiidao.community.krill
 
 import android.content.Intent
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -27,24 +14,16 @@ import androidx.navigation.navArgument
 import androidx.navigation.navDeepLink
 import androidx.navigation.toRoute
 import com.google.firebase.messaging.FirebaseMessaging
-import jamiidao.community.krill.components.KrillBorderRing
-import jamiidao.community.krill.components.KrillGlassSurface
-import jamiidao.community.krill.components.KrillLogo
-import jamiidao.community.krill.components.KrillStripedLoader
 import jamiidao.community.krill.components.ShowErrorAsNormalView
 import jamiidao.community.krill.dashboard.ActivityMetadata
 import jamiidao.community.krill.dashboard.DashboardShell
-import jamiidao.community.krill.dashboard.SuccessView
 import jamiidao.community.krill.dashboard.ViewOrganizationView
 import jamiidao.community.krill.deeplinks.JoinOrganization
 import jamiidao.community.krill.notifications_module.RequestNotificationPermissionScreen
 import jamiidao.community.krill.notifications_module.hasNotificationPermission
 import jamiidao.community.krill.notifications_module.needsNotificationPermission
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 import kotlinx.serialization.Serializable
-import java.time.ZoneId
-import java.time.ZonedDateTime
 
 @Serializable
 object DashboardRoute
@@ -53,7 +32,10 @@ object DashboardRoute
 object RequestNotificationPermissionRoute
 
 @Serializable
-data class ViewGroupActivitiesRoute(val sldTld: String)
+data class ViewGroupActivitiesRoute(
+    val sldTld: String,
+    val withScanned: Boolean = false
+)
 
 @Serializable
 object NewsRoute
@@ -87,11 +69,10 @@ fun AppNavigation(
             val token = FirebaseMessaging.getInstance().token.await()
             rustFnSetFcmToken(appDirPath, token)
             app_log("Received FCM token")
-        } catch (e: RustFfiException) {
-            app_log("Failed to send FCM token: ${e.uiMessage()}")
+        } catch (e: Exception) {
+            app_log("Failed to send FCM token: ${e.message}")
 
         }
-
     }
 
     NavHost(
@@ -111,22 +92,11 @@ fun AppNavigation(
 
         composable<DashboardRoute> {
             DashboardView(mainActivity, navController)
-
-//            val data = RustTypeActivityMetadata(
-//                creator = "kcharleschege@gmail.com",
-//                name = "Transfer SOL",
-//                timestamp = "Sunday, 07 June 2026 12:52:33",
-//                spend = "0.5",
-//                threshold = 2u
-//            );
-//
-//            SuccessView(navController, data)
-
         }
 
         composable<ViewGroupActivitiesRoute> { backStackEntry ->
             val routeData: ViewGroupActivitiesRoute = backStackEntry.toRoute()
-            ViewOrganizationView(navController, routeData.sldTld)
+            ViewOrganizationView(navController, routeData.sldTld, routeData.withScanned)
         }
         composable(
             route = "{action}/{arguments}",
@@ -242,4 +212,3 @@ fun SecurityScreen() {
 fun UpdatesScreen() {
     Text("Updates")
 }
-

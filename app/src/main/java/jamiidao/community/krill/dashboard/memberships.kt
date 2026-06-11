@@ -50,6 +50,7 @@ import jamiidao.community.krill.components.AppText
 import jamiidao.community.krill.components.GlassButton
 import jamiidao.community.krill.components.KrillStripedLoader
 import jamiidao.community.krill.components.ShowErrorAsBottomSheet
+import jamiidao.community.krill.getTimezoneOffset
 import jamiidao.community.krill.rustFnGetOrgsMetadata
 import jamiidao.community.krill.ui.theme.bungeeHairlineFamily
 
@@ -63,10 +64,11 @@ fun Memberships(
 
     val memberships = remember { mutableStateOf<List<RustTypeStoredOrgInfoMetadata>?>(null) }
     val errorExists = remember { mutableStateOf<String?>(null) }
+    val timezoneOffset = getTimezoneOffset()
 
     LaunchedEffect(Unit) {
         try {
-            val fetchedMemberships = rustFnGetOrgsMetadata()
+            val fetchedMemberships = rustFnGetOrgsMetadata(timezoneOffset)
             memberships.value = fetchedMemberships
         } catch (e: RustFfiException) {
             errorExists.value = e.uiMessage();

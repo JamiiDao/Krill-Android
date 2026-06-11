@@ -199,7 +199,7 @@ fun DisplayOrgInfo(
                             )
 
                             navController.navigate(ViewGroupActivitiesRoute(sldTld)) {
-                                popUpTo(0)
+                                popUpTo(DashboardRoute)
                             }
                         } catch (e: RustFfiException) {
                             error.value = e

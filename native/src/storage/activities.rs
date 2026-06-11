@@ -1,6 +1,6 @@
 use redb::TableDefinition;
 
-use crate::{AppStorage, RustFfiResult, StoredFrostParticipateMessage};
+use crate::{AppStorage, FrostParticipantInternalData, RustFfiResult};
 
 impl AppStorage {
     pub(crate) const ACTIVITIES_TABLE: TableDefinition<'static, &[u8], Vec<u8>> =
@@ -8,7 +8,7 @@ impl AppStorage {
 
     pub async fn set_activity(
         &self,
-        to_storage: StoredFrostParticipateMessage,
+        to_storage: FrostParticipantInternalData,
     ) -> RustFfiResult<()> {
         self.set(Self::ACTIVITIES_TABLE, to_storage.activity_id, to_storage)
             .await
