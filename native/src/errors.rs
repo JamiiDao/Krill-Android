@@ -1,5 +1,5 @@
 use bitcode::{Decode, Encode};
-use krill_common::QuicTransmissionError;
+use krill_common::{QuicTransmissionError, TaiTimestampError};
 
 pub type RustFfiResult<T> = Result<T, RustFfiError>;
 
@@ -39,6 +39,12 @@ pub enum RustFfiError {
 impl RustFfiError {
     pub fn ui_message(&self) -> String {
         self.to_string()
+    }
+}
+
+impl From<TaiTimestampError> for RustFfiError {
+    fn from(_: TaiTimestampError) -> Self {
+        Self::Tai64NTimestampBytes
     }
 }
 

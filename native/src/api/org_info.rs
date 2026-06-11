@@ -1,4 +1,4 @@
-use std::path::Path;
+use std::collections::HashMap;
 
 use frost_dkg_types::FrostCredentialSeed;
 use krill_common::{JoinPayload, OrganizationInfo, QuicProtocolOp};
@@ -11,14 +11,19 @@ use crate::{
 #[uniffi::export]
 async fn rust_fn_load_stored_organization_info(
     sld_tld: String,
+    timezone: i32,
 ) -> Result<Option<RustTypeStoredOrgInfoMetadata>, RustFfiError> {
-    Ok(crate::app_storage()?
+    crate::app_storage()?
         .get_org_info(&sld_tld)
         .await?
         .map(|value| {
-            let org_info: RustTypeStoredOrgInfoMetadata = value.into();
-            org_info
-        }))
+            crate::ClientUtils::log_to_logcat(&format!("Fetched Org Info: {value:?}"));
+            let org_info: RustTypeStoredOrgInfoMetadata = (timezone, value).try_into()?;
+            crate::ClientUtils::log_to_logcat(&format!("Org Info Transformed: {org_info:?}"));
+
+            Ok::<_, RustFfiError>(org_info)
+        })
+        .transpose()
 }
 
 #[uniffi::export]
@@ -32,8 +37,10 @@ async fn rust_fn_fetch_org_info(sld_tld: String) -> Result<RustTypeOrganizationI
 }
 
 #[uniffi::export]
-async fn rust_fn_get_orgs_metadata() -> Result<Vec<RustTypeStoredOrgInfoMetadata>, RustFfiError> {
-    crate::app_storage()?.get_all_orgs_ffi().await
+async fn rust_fn_get_orgs_metadata(
+    timezone: i32,
+) -> Result<Vec<RustTypeStoredOrgInfoMetadata>, RustFfiError> {
+    crate::app_storage()?.get_all_orgs_ffi(timezone).await
 }
 
 #[uniffi::export]
@@ -78,6 +85,8 @@ async fn rust_fn_join(
             sld_tld: sld_tld.clone(),
             org_info,
             identity,
+            active: Option::default(),
+            activities: HashMap::default(),
         };
 
         let payload = JoinPayload {

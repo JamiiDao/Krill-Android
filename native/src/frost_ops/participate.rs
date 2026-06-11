@@ -1,19 +1,19 @@
 use bitcode::{Decode, Encode};
 use krill_common::{
     round1, ActivityStoreKey, AsymmetricKeypairBytes, Blake3HashBytes, FrostCredentialSeed,
-    FrostParticipateMessage, MinMaxParticipants, QuicProtocolOp, Tai64NTimestamp,
+    FrostParticipateMessage, MinMaxParticipants, Tai64NTimestamp,
 };
 
-use crate::{FrostEd25519, QuicClient, RustFfiError, RustFfiResult};
+use crate::{FrostEd25519, RustFfiError, RustFfiResult};
 
-pub struct FrostParticipateMessageWrapper(FrostParticipateMessage);
+pub struct FrostParticipateMessageWrapper(pub(crate) FrostParticipateMessage);
 
 impl FrostParticipateMessageWrapper {
-    pub async fn init(
+    pub async fn new(
         domain_or_ip: &str,
         activity_id: ActivityStoreKey,
         min_max: MinMaxParticipants,
-    ) -> RustFfiResult<()> {
+    ) -> RustFfiResult<Self> {
         let ecdk = AsymmetricKeypairBytes::new()?;
 
         crate::ClientUtils::log_to_logcat("ECDK GENERATED!");
@@ -23,11 +23,9 @@ impl FrostParticipateMessageWrapper {
         crate::ClientUtils::log_to_logcat("-> APP STORAGE ACCESSED!");
 
         let credential: FrostCredentialSeed;
-        let sld_tld: String;
 
         if let Some(org_info) = store.get_org_info(domain_or_ip).await? {
             credential = org_info.identity;
-            sld_tld = org_info.sld_tld;
         } else {
             crate::ClientUtils::log_to_logcat("ORG NOT FOUND, CANNOT PARTICIPATE!");
 
@@ -78,13 +76,7 @@ impl FrostParticipateMessageWrapper {
 
         store.set_activity(to_storage).await?;
 
-        let encoded_op = QuicProtocolOp::Participate(Box::new(wrapped.0));
-
-        async_io::Timer::after(std::time::Duration::from_secs(5)).await;
-
-        // QuicClient::connect::<()>(&sld_tld, &encoded_op).await?;
-
-        Ok(())
+        Ok(wrapped)
     }
 
     /// Allows the target participants to ensure that the entire message was meant

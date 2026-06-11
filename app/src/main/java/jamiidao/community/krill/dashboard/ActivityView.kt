@@ -1,7 +1,5 @@
 package jamiidao.community.krill.dashboard
 
-import android.app.Application
-import android.content.Intent
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -29,7 +27,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.core.content.ContextCompat.startForegroundService
 import androidx.navigation.NavController
 import jamiidao.community.krill.DashboardRoute
 import jamiidao.community.krill.ErrorRoute
@@ -44,7 +41,7 @@ import jamiidao.community.krill.components.GlassButtonWithComposable
 import jamiidao.community.krill.components.KrillGlassSurface
 import jamiidao.community.krill.components.KrillStripedLoader
 import jamiidao.community.krill.components.ShowErrorAsNormalView
-import jamiidao.community.krill.frostServices.FrostDkgHandler
+import jamiidao.community.krill.getTimezoneOffset
 import jamiidao.community.krill.rustFnGetActivity
 import jamiidao.community.krill.rustFnParseActivityDeeplink
 import jamiidao.community.krill.rustFnParticipateInActivity
@@ -52,14 +49,11 @@ import jamiidao.community.krill.ui.theme.CadmiumOrange
 import jamiidao.community.krill.ui.theme.bungeeHairlineFamily
 import jamiidao.community.krill.ui.theme.commitMonoFamily
 import kotlinx.coroutines.launch
-import java.time.ZoneId
-import java.time.ZonedDateTime
 
 
 @Composable
 fun ActivityMetadata(navController: NavController, data: String) {
-    val offset = ZonedDateTime.now(ZoneId.systemDefault()).offset.totalSeconds
-
+    val timezoneOffset = getTimezoneOffset()
     val fetchedActivityMetadata =
         remember { mutableStateOf<Result<RustTypeActivityMetadata?>?>(null) }
 
@@ -78,7 +72,7 @@ fun ActivityMetadata(navController: NavController, data: String) {
                 LaunchedEffect(Unit) {
                     fetchedActivityMetadata.value =
                         runCatching {
-                            val foo = rustFnGetActivity(deeplink, offset)
+                            val foo = rustFnGetActivity(deeplink, timezoneOffset)
                             app_log("$foo");
 
                             foo
@@ -134,8 +128,6 @@ fun ActivityMetadata(navController: NavController, data: String) {
 
 @Composable
 fun SuccessView(navController: NavController, metadata: RustTypeActivityMetadata?) {
-    val context = LocalContext.current
-
     val scope = rememberCoroutineScope()
 
     val buttonEnabled = remember { mutableStateOf(true) }
@@ -245,14 +237,12 @@ fun SuccessView(navController: NavController, metadata: RustTypeActivityMetadata
 
                             scope.launch {
                                 try {
-                                    val sldTld: String = rustFnParticipateInActivity(it)
-
-                                    Intent(context, FrostDkgHandler::class.java).also { intent ->
-                                        intent.action = FrostDkgHandler.ACTION_START
-                                        context.startForegroundService(intent)
-                                    }
-
-                                    navController.navigate(ViewGroupActivitiesRoute(sldTld)) {
+                                    val domainOrIp = rustFnParticipateInActivity(it)
+                                    navController.navigate(
+                                        ViewGroupActivitiesRoute(
+                                            domainOrIp,
+                                        )
+                                    ) {
                                         popUpTo(DashboardRoute)
                                     }
                                 } catch (e: RustFfiException) {

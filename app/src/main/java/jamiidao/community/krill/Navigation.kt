@@ -53,7 +53,9 @@ object DashboardRoute
 object RequestNotificationPermissionRoute
 
 @Serializable
-data class ViewGroupActivitiesRoute(val sldTld: String)
+data class ViewGroupActivitiesRoute(
+    val sldTld: String,
+)
 
 @Serializable
 object NewsRoute
@@ -111,17 +113,6 @@ fun AppNavigation(
 
         composable<DashboardRoute> {
             DashboardView(mainActivity, navController)
-
-//            val data = RustTypeActivityMetadata(
-//                creator = "kcharleschege@gmail.com",
-//                name = "Transfer SOL",
-//                timestamp = "Sunday, 07 June 2026 12:52:33",
-//                spend = "0.5",
-//                threshold = 2u
-//            );
-//
-//            SuccessView(navController, data)
-
         }
 
         composable<ViewGroupActivitiesRoute> { backStackEntry ->
@@ -242,4 +233,3 @@ fun SecurityScreen() {
 fun UpdatesScreen() {
     Text("Updates")
 }
-

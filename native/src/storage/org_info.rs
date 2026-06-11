@@ -1,9 +1,14 @@
+use core::fmt;
+use std::collections::HashMap;
+
 use bitcode::{Decode, Encode};
-use frost_dkg_types::{AsymmetricKeypairBytes, EphemeralClientDeviceKeypair, FrostCredentialSeed};
-use krill_common::OrganizationInfo;
+use frost_dkg_types::FrostCredentialSeed;
+use krill_common::{ActivityInfo, ActivityStoreKey, OrganizationInfo};
 use redb::TableDefinition;
 
-use crate::{AppStorage, RustFfiError, RustFfiResult};
+use crate::{
+    AppStorage, RustFfiError, RustFfiResult, RustTypeActivityInfo, RustTypeActivityMetadata,
+};
 
 impl AppStorage {
     pub(crate) const ORG_INFO_TABLE: TableDefinition<'static, &[u8], Vec<u8>> =
@@ -29,6 +34,7 @@ impl AppStorage {
 
     pub(crate) async fn get_all_orgs_ffi(
         &self,
+        timezone: i32,
     ) -> RustFfiResult<Vec<RustTypeStoredOrgInfoMetadata>> {
         let orgs = self.get_all(Self::ORG_INFO_TABLE).await?;
 
@@ -36,7 +42,7 @@ impl AppStorage {
             .map(|bytes| {
                 let org = bitcode::decode::<StoredOrgInfo>(&bytes)
                     .or(Err(RustFfiError::UnableToDecodeStoredOrgInfo))?;
-                let org: RustTypeStoredOrgInfoMetadata = org.into();
+                let org: RustTypeStoredOrgInfoMetadata = (timezone, org).try_into()?;
 
                 Ok::<_, RustFfiError>(org)
             })
@@ -61,31 +67,76 @@ impl AppStorage {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Encode, Decode)]
+#[derive(Clone, PartialEq, Eq, Encode, Decode)]
 pub(crate) struct StoredOrgInfo {
     pub(crate) sld_tld: String,
     pub(crate) org_info: OrganizationInfo,
     pub(crate) identity: FrostCredentialSeed,
+    pub(crate) active: Option<String>,
+    pub(crate) activities: HashMap<String, ActivityInfo>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Encode, Decode, uniffi::Record)]
+impl fmt::Debug for StoredOrgInfo {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("StoredOrgInfo")
+            .field("sld_tld", &self.sld_tld)
+            .field("active", &format!("{:?}", &self.active))
+            .field("activities", &format!("{:?}", &self.activities))
+            .field("org_info", &format!("{:?}", &self.org_info))
+            .field("identity", &format!("{:?}", &self.identity))
+            .finish()
+    }
+}
+
+#[derive(Clone, PartialEq, Eq, uniffi::Record)]
 pub struct RustTypeStoredOrgInfoMetadata {
     pub sld_tld: String,
     pub org_name: String,
     pub logo_icon: Vec<u8>,
     pub support_mail: String,
     pub identity: String,
+    pub active: Option<String>,
+    pub activities: Vec<RustTypeActivityInfo>,
 }
 
-impl From<StoredOrgInfo> for RustTypeStoredOrgInfoMetadata {
-    fn from(info: StoredOrgInfo) -> Self {
-        Self {
+impl fmt::Debug for RustTypeStoredOrgInfoMetadata {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("RustTypeStoredOrgInfoMetadata")
+            .field("sld_tld", &self.sld_tld)
+            .field("active", &format!("{:?}", &self.active))
+            .field("activities", &format!("{:?}", &self.activities))
+            .field("org_name", &format!("{:?}", &self.org_name))
+            .field("identity", &format!("{:?}", &self.identity))
+            .field("logo", &"SOME_BYTES")
+            .finish()
+    }
+}
+
+impl TryFrom<(i32, StoredOrgInfo)> for RustTypeStoredOrgInfoMetadata {
+    type Error = RustFfiError;
+
+    fn try_from(values: (i32, StoredOrgInfo)) -> Result<Self, Self::Error> {
+        let (zone, info) = values;
+
+        let activities = info
+            .activities
+            .values()
+            .map(|activity| {
+                let transformed: RustTypeActivityInfo = (zone, activity.clone()).try_into()?;
+
+                Ok::<_, RustFfiError>(transformed)
+            })
+            .collect::<Result<Vec<RustTypeActivityInfo>, RustFfiError>>()?;
+
+        Ok(Self {
             sld_tld: info.sld_tld,
             org_name: info.org_info.name,
             logo_icon: info.org_info.logo_icon,
             support_mail: info.org_info.support_mail,
             identity: info.identity.seed().to_string(),
-        }
+            active: info.active,
+            activities,
+        })
     }
 }
 
