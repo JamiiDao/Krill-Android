@@ -52,22 +52,40 @@ impl QuicClient {
             return Err(QuicTransmissionError::InvalidResponsePayload);
         }
 
-        if response[0] == 0 {
-            QuicTransmissionEncoder::decode_success::<T>(&response[1..])
+        let op_flag = if let Some(op_flag) = response.first() {
+            *op_flag
         } else {
+            return Err(QuicTransmissionError::InvalidResponsePayload);
+        };
+
+        if op_flag == 0 {
             Err(QuicTransmissionEncoder::decode_failure(&response[1..]))
+        } else if op_flag == 1 {
+            match QuicTransmissionEncoder::decode_success::<T>(&response[1..]) {
+                Err(error) => Err(error),
+                Ok(value) => Ok(value),
+            }
+        } else {
+            Err(QuicTransmissionError::InvalidResponsePayload)
         }
     }
 
     pub async fn setup_connect(sld_tld: &str) -> Result<quinn::Connection, QuicTransmissionError> {
         let (mut socket_addr, server_name, classification) = Self::resolve(sld_tld).await?;
 
-        let client_config = if classification == IpClassification::Internet {
+        let mut client_config = if classification == IpClassification::Internet {
             quinn::ClientConfig::try_with_platform_verifier()?
         } else {
             Self::configure_client()
                 .map_err(|error| QuicTransmissionError::Rustls(error.to_string()))?
         };
+
+        let mut transport_config = quinn::TransportConfig::default();
+        transport_config
+            .keep_alive_interval(Some(std::time::Duration::from_secs(15)))
+            .max_idle_timeout(Some(quinn::VarInt::from_u32(300_000).into()));
+
+        client_config.transport_config(std::sync::Arc::new(transport_config));
 
         let mut random_u16: u16;
         let mut endpoint: Endpoint;

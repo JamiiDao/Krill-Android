@@ -56,3 +56,4 @@ frost-core = "3.0.0"
 rand = "=0.8"
 async-io = "2.6.0"
 smol = "2.0.2"
+zeroize = { version = "=1.8.2", default-features = false }

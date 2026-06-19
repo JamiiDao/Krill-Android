@@ -64,11 +64,10 @@ class FGCMService : FirebaseMessagingService() {
 
         scope.launch {
             try {
-
                 rustFnSetFcmToken(filesPath, token)
                 app_log("Received onNewToken request from FCM")
-            } catch (e: RustFfiException) {
-                app_log("Failed to set FCM token from `onNewToken` event: ${e.uiMessage()}")
+            } catch (e: Exception) {
+                app_log("Failed to set FCM token from `onNewToken` event: ${e.message}")
             }
         }
     }

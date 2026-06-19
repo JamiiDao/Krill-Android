@@ -11,7 +11,11 @@ import jamiidao.community.krill.app_log
 class FrostDkgHandler : Service() {
 
     companion object {
-        const val ACTION_START = "ACTION_START"
+        const val DKG_ROUND1 = "DKG_ROUND1"
+        const val DKG_ROUND2 = "DKG_ROUND2"
+        const val DKG_FINALIZED = "DKG_FINALIZED"
+        const val FINALIZING_DKG = "FINALIZING_DKG"
+
         const val ACTION_STOP = "ACTION_STOP"
         const val CHANNEL_ID = "group-signing"
         const val NOTIF_ID = 1
@@ -22,10 +26,29 @@ class FrostDkgHandler : Service() {
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         if (intent == null) {
             app_log("Restarted after termination")
-            start()
+            // TODO start()
         } else {
             when (intent.action) {
-                ACTION_START -> start()
+                DKG_ROUND1 -> start(
+                    contentTitle = "FROST Round1 (automated)",
+                    contentText = "Participants are agreeing on a group public key"
+                )
+
+                DKG_ROUND2 -> start(
+                    contentTitle = "FROST Round2 (automated)",
+                    contentText = "Participants are agreeing on a group public key"
+                )
+
+                FINALIZING_DKG -> start(
+                    contentTitle = "Finalizing FROST Key Agreement (automated)",
+                    contentText = "Consolidating group public key"
+                )
+
+                DKG_FINALIZED -> start(
+                    contentTitle = "Finalized FROST Key Agreement (automated)",
+                    contentText = "Participants agreed on a group public key successfully"
+                )
+
                 ACTION_STOP -> stopServiceInternal()
             }
         }
@@ -33,7 +56,12 @@ class FrostDkgHandler : Service() {
         return START_STICKY
     }
 
-    private fun start() {
+    private fun start(
+        icon: Int = R.drawable.dkg,
+        contentTitle: String,
+        contentText: String
+
+    ) {
         val stopIntent = Intent(this, FrostDkgHandler::class.java).apply {
             action = ACTION_STOP
         }
@@ -46,12 +74,12 @@ class FrostDkgHandler : Service() {
         )
 
         val notification = NotificationCompat.Builder(this, CHANNEL_ID)
-            .setSmallIcon(R.drawable.signature)
-            .setContentTitle("FROST distributed key generation")
-            .setContentText("Running background signing protocol")
+            .setSmallIcon(icon)
+            .setContentTitle(contentTitle)
+            .setContentText(contentText)
             .setOngoing(true)
             .addAction(
-                R.drawable.signature,
+                icon,
                 "STOP",
                 stopPendingIntent
             )

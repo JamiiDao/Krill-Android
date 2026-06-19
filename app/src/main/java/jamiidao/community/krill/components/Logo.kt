@@ -44,7 +44,7 @@ fun KrillLogo() {
         )
     }
     AppText(
-        textContent = "Shared Trust. Seamless Security",
+        textContent = "Group Security. Verified As One",
         fontFamily = nunitoFamily,
         fontSize = 18.sp,
         color = CadmiumOrange,

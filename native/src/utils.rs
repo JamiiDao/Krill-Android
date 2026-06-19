@@ -19,9 +19,6 @@ pub(crate) fn app_storage() -> Result<&'static AppStorage, RustFfiError> {
 
 pub(crate) type FrostEd25519 = frost_ed25519::Ed25519Sha512;
 
-pub(crate) static ORG_INFO: LazyLock<Arc<RwLock<Option<StoredOrgInfo>>>> =
-    LazyLock::new(|| Arc::new(RwLock::new(Option::default())));
-
 pub struct ClientUtils;
 
 impl ClientUtils {

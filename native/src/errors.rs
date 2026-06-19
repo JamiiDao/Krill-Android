@@ -1,10 +1,12 @@
 use bitcode::{Decode, Encode};
-use krill_common::QuicTransmissionError;
+use krill_common::{QuicTransmissionError, TaiTimestampError};
 
 pub type RustFfiResult<T> = Result<T, RustFfiError>;
 
 #[derive(Debug, PartialEq, Eq, uniffi::Error, thiserror::Error)]
 pub enum RustFfiError {
+    #[error("Attempted compute a FROST DKG operation the current state does not allow for current computation.")]
+    InvalidActivityState,
     #[error("The FCM token in the file is invalid")]
     InvalidFcmTokenData,
     #[error("App storage already initialized")]
@@ -33,12 +35,26 @@ pub enum RustFfiError {
     Frost(String),
     #[error("The activity id is invalid")]
     InvalidActivityId,
+    #[error("This organization has not active activity")]
+    NoActiveActivity,
+    #[error("Active activity not found in the store!")]
+    ActivityNotFound,
+    #[error("Attempted to insert an activity that already exists")]
+    ActivityAlreadyExists,
+    #[error("The FROST DKG round channel is closed")]
+    DkgChannelError,
 }
 
 #[uniffi::export]
 impl RustFfiError {
     pub fn ui_message(&self) -> String {
         self.to_string()
+    }
+}
+
+impl From<TaiTimestampError> for RustFfiError {
+    fn from(_: TaiTimestampError) -> Self {
+        Self::Tai64NTimestampBytes
     }
 }
 
