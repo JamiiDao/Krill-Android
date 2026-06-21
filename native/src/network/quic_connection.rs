@@ -82,7 +82,7 @@ impl QuicClient {
 
         let mut transport_config = quinn::TransportConfig::default();
         transport_config
-            .keep_alive_interval(Some(std::time::Duration::from_secs(15)))
+            .keep_alive_interval(Some(std::time::Duration::from_secs(25)))
             .max_idle_timeout(Some(quinn::VarInt::from_u32(300_000).into()));
 
         client_config.transport_config(std::sync::Arc::new(transport_config));

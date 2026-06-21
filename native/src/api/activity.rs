@@ -76,46 +76,35 @@ impl ActivityEmitter {
         let activity_id = SCANNED_ACTIVITY.read().await.as_hex();
         let encoded_op = initial_payload(&domain_or_ip, &activity_id).await?;
 
-        let (mut send_stream, recv_stream) = QuicClient::setup_connect(&domain_or_ip)
-            .await?
-            .open_bi()
-            .await
-            .map_err(|error| {
-                let error: QuicTransmissionError = error.into();
+        let conn = QuicClient::setup_connect(&domain_or_ip).await?;
+        let (mut send_stream, recv_stream) = conn.open_bi().await.map_err(|error| {
+            let error: QuicTransmissionError = error.into();
 
-                error
-            })?;
+            error
+        })?;
 
         let len = (encoded_op.len() as u32).to_be_bytes();
 
-        if let Err(error) = send_stream.write_all(&len).await {
+        send_stream.write_all(&len).await.map_err(|error| {
             let error: QuicTransmissionError = error.into();
 
-            ClientUtils::log_to_logcat("SENT TO RELAY....REACHED");
-
-            listener.on_recv(ActivityListenerOutcome {
-                data: RustTypeActivitySubscriberChannel::Terminated(error.to_string()),
-            });
-        }
-
-        if let Err(error) = send_stream.write_all(&encoded_op).await {
+            error
+        })?;
+        send_stream.write_all(&encoded_op).await.map_err(|error| {
             let error: QuicTransmissionError = error.into();
 
-            ClientUtils::log_to_logcat("SENT TO RELAY....REACHED");
-
-            listener.on_recv(ActivityListenerOutcome {
-                data: RustTypeActivitySubscriberChannel::Terminated(error.to_string()),
-            });
-        }
+            error
+        })?;
 
         ClientUtils::log_to_logcat("SENT TO RELAY....REACHED");
 
-        Ok(activate_listener(listener, send_stream, recv_stream).await?)
+        Ok(activate_listener(listener, conn, send_stream, recv_stream).await?)
     }
 }
 
 async fn activate_listener(
     listener: Arc<dyn ActivityListener>,
+    connection: quinn::Connection,
     mut send_stream: quinn::SendStream,
     mut recv_stream: quinn::RecvStream,
 ) -> QuicTransmissionResult<()> {
@@ -124,6 +113,26 @@ async fn activate_listener(
     let listener_inner = listener.clone();
 
     let sender_cloned = sender.clone();
+    let terminate_sender = sender.clone();
+    let conn_terminate_sender = sender.clone();
+
+    let conn_listener = listener_inner.clone();
+
+    smol::spawn(async move {
+        connection.closed().await;
+
+        conn_listener.on_recv(ActivityListenerOutcome {
+            data: RustTypeActivitySubscriberChannel::Terminated(
+                "CONNECTION CLOSED BY RELAY".to_string(),
+            ),
+        });
+
+        conn_terminate_sender
+            .send(NextChannelOp::Terminate)
+            .await
+            .err();
+    })
+    .detach();
 
     smol::spawn(async move {
         loop {
@@ -175,6 +184,8 @@ async fn activate_listener(
                 break;
             }
         }
+
+        terminate_sender.send(NextChannelOp::Terminate).await.err();
     })
     .detach();
 
@@ -183,6 +194,9 @@ async fn activate_listener(
         ClientUtils::log_to_logcat(&format!("Received Message via channel {message:?}"));
 
         let payload: Vec<u8> = match message {
+            NextChannelOp::Terminate => {
+                break;
+            }
             NextChannelOp::PerformDkgRound2 {
                 sld_tld,
                 activity_id,
@@ -709,6 +723,7 @@ impl RustTypeActivitySubscriberChannel {
 
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub enum NextChannelOp {
+    Terminate,
     PerformDkgRound2 {
         sld_tld: String,
         activity_id: String,

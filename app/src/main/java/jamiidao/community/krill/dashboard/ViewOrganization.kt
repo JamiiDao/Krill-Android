@@ -232,11 +232,10 @@ fun OrgDetails(
                         if (ackReceived.value) {
                             LaunchedEffect(Unit) {
                                 app_log("STOPPED.....")
-                                context.startService(
-                                    Intent(context, FrostDkgHandler::class.java).apply {
-                                        action = FrostDkgHandler.ACTION_STOP
-                                    }
-                                )
+
+                                Intent(context, FrostDkgHandler::class.java).also { intent ->
+                                    context.stopService(intent)
+                                }
                             }
                         }
                     }
@@ -276,6 +275,8 @@ fun OrgDetails(
                                     action = FrostDkgHandler.ACTION_STOP
                                 }
                             )
+
+                            ackReceived.value = false
                         }
                     }
 
