@@ -6,7 +6,8 @@ use krill_common::{
     FrostRound2ParticipantEncryptedPayload, QuicDkgRelayResponse, QuicProtocolOp,
     QuicTransmissionEncoder, QuicTransmissionError, QuicTransmissionResult, MAX_LEN_10_MIB,
 };
-use smol::channel::{bounded, Sender};
+use quinn::VarInt;
+use smol::channel::{bounded, Receiver, Sender};
 
 use crate::{
     AppStorage, ClientUtils, DkgRound2Payload, FinalizeDkgOp, FrostParticipateMessageWrapper,
@@ -55,16 +56,22 @@ pub struct ActivityListenerOutcome {
 #[uniffi::export(with_foreign)]
 pub trait ActivityListener: Send + Sync {
     fn on_recv(&self, value: ActivityListenerOutcome);
+    fn terminate(&self);
 }
 
 #[derive(uniffi::Object)]
-pub struct ActivityEmitter;
+pub struct ActivityEmitter {
+    sender: Sender<NextChannelOp>,
+    receiver: Receiver<NextChannelOp>,
+}
 
 #[uniffi::export]
 impl ActivityEmitter {
     #[uniffi::constructor]
     pub fn new() -> Arc<Self> {
-        Arc::new(Self)
+        let (sender, receiver) = bounded::<NextChannelOp>(32);
+
+        Arc::new(Self { sender, receiver })
     }
 
     pub async fn start(
@@ -98,7 +105,21 @@ impl ActivityEmitter {
 
         ClientUtils::log_to_logcat("SENT TO RELAY....REACHED");
 
-        Ok(activate_listener(listener, conn, send_stream, recv_stream).await?)
+        Ok(activate_listener(
+            listener,
+            conn,
+            send_stream,
+            recv_stream,
+            self.sender.clone(),
+            self.receiver.clone(),
+        )
+        .await?)
+    }
+
+    pub async fn stop(&self) {
+        ClientUtils::log_to_logcat("Received Terminate request from UI");
+
+        self.sender.send(NextChannelOp::Terminate).await.err();
     }
 }
 
@@ -107,9 +128,9 @@ async fn activate_listener(
     connection: quinn::Connection,
     mut send_stream: quinn::SendStream,
     mut recv_stream: quinn::RecvStream,
+    sender: Sender<NextChannelOp>,
+    receiver: Receiver<NextChannelOp>,
 ) -> QuicTransmissionResult<()> {
-    let (sender, receiver) = bounded::<NextChannelOp>(32);
-
     let listener_inner = listener.clone();
 
     let sender_cloned = sender.clone();
@@ -118,8 +139,10 @@ async fn activate_listener(
 
     let conn_listener = listener_inner.clone();
 
+    let connection_for_spawn = connection.clone();
+
     smol::spawn(async move {
-        connection.closed().await;
+        connection_for_spawn.closed().await;
 
         conn_listener.on_recv(ActivityListenerOutcome {
             data: RustTypeActivitySubscriberChannel::Terminated(
@@ -263,6 +286,7 @@ async fn activate_listener(
     }
 
     send_stream.finish()?;
+    connection.close(VarInt::from_u32(5000), "Closed".as_bytes());
 
     Ok(())
 }
@@ -721,7 +745,7 @@ impl RustTypeActivitySubscriberChannel {
     }
 }
 
-#[derive(Debug, PartialEq, Eq, Clone)]
+#[derive(Debug, PartialEq, Eq, Clone, uniffi::Enum)]
 pub enum NextChannelOp {
     Terminate,
     PerformDkgRound2 {

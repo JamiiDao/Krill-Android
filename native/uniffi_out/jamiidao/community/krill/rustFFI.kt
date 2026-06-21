@@ -623,22 +623,28 @@ internal interface UniffiForeignFutureCompleteVoid : com.sun.jna.Callback {
 internal interface UniffiCallbackInterfaceActivityListenerMethod0 : com.sun.jna.Callback {
     fun callback(`uniffiHandle`: Long,`value`: RustBuffer.ByValue,`uniffiOutReturn`: Pointer,uniffiCallStatus: UniffiRustCallStatus,)
 }
-@Structure.FieldOrder("uniffiFree", "uniffiClone", "onRecv")
+internal interface UniffiCallbackInterfaceActivityListenerMethod1 : com.sun.jna.Callback {
+    fun callback(`uniffiHandle`: Long,`uniffiOutReturn`: Pointer,uniffiCallStatus: UniffiRustCallStatus,)
+}
+@Structure.FieldOrder("uniffiFree", "uniffiClone", "onRecv", "terminate")
 internal open class UniffiVTableCallbackInterfaceActivityListener(
     @JvmField internal var `uniffiFree`: UniffiCallbackInterfaceFree? = null,
     @JvmField internal var `uniffiClone`: UniffiCallbackInterfaceClone? = null,
     @JvmField internal var `onRecv`: UniffiCallbackInterfaceActivityListenerMethod0? = null,
+    @JvmField internal var `terminate`: UniffiCallbackInterfaceActivityListenerMethod1? = null,
 ) : Structure() {
     class UniffiByValue(
         `uniffiFree`: UniffiCallbackInterfaceFree? = null,
         `uniffiClone`: UniffiCallbackInterfaceClone? = null,
         `onRecv`: UniffiCallbackInterfaceActivityListenerMethod0? = null,
-    ): UniffiVTableCallbackInterfaceActivityListener(`uniffiFree`,`uniffiClone`,`onRecv`,), Structure.ByValue
+        `terminate`: UniffiCallbackInterfaceActivityListenerMethod1? = null,
+    ): UniffiVTableCallbackInterfaceActivityListener(`uniffiFree`,`uniffiClone`,`onRecv`,`terminate`,), Structure.ByValue
 
    internal fun uniffiSetValue(other: UniffiVTableCallbackInterfaceActivityListener) {
         `uniffiFree` = other.`uniffiFree`
         `uniffiClone` = other.`uniffiClone`
         `onRecv` = other.`onRecv`
+        `terminate` = other.`terminate`
     }
 
 }
@@ -693,7 +699,11 @@ internal object IntegrityCheckingUniffiLib {
     ): Short
     external fun uniffi_krill_native_checksum_method_activityemitter_start(
     ): Short
+    external fun uniffi_krill_native_checksum_method_activityemitter_stop(
+    ): Short
     external fun uniffi_krill_native_checksum_method_activitylistener_on_recv(
+    ): Short
+    external fun uniffi_krill_native_checksum_method_activitylistener_terminate(
     ): Short
     external fun uniffi_krill_native_checksum_constructor_activityemitter_new(
     ): Short
@@ -724,6 +734,8 @@ internal object UniffiLib {
     ): Long
     external fun uniffi_krill_native_fn_method_activityemitter_start(`ptr`: Long,`listener`: Long,`domainOrIp`: RustBuffer.ByValue,`timezone`: Int,
     ): Long
+    external fun uniffi_krill_native_fn_method_activityemitter_stop(`ptr`: Long,
+    ): Long
     external fun uniffi_krill_native_fn_clone_activitylistener(`handle`: Long,uniffi_out_err: UniffiRustCallStatus, 
     ): Long
     external fun uniffi_krill_native_fn_free_activitylistener(`handle`: Long,uniffi_out_err: UniffiRustCallStatus, 
@@ -731,6 +743,8 @@ internal object UniffiLib {
     external fun uniffi_krill_native_fn_init_callback_vtable_activitylistener(`vtable`: UniffiVTableCallbackInterfaceActivityListener,
     ): Unit
     external fun uniffi_krill_native_fn_method_activitylistener_on_recv(`ptr`: Long,`value`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    ): Unit
+    external fun uniffi_krill_native_fn_method_activitylistener_terminate(`ptr`: Long,uniffi_out_err: UniffiRustCallStatus, 
     ): Unit
     external fun uniffi_krill_native_fn_method_rusttypeactivitysubscriberchannel_to_ui_message(`ptr`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
     ): RustBuffer.ByValue
@@ -923,7 +937,13 @@ private fun uniffiCheckApiChecksums(lib: IntegrityCheckingUniffiLib) {
     if (lib.uniffi_krill_native_checksum_method_activityemitter_start() != 59370.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
+    if (lib.uniffi_krill_native_checksum_method_activityemitter_stop() != 57259.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
     if (lib.uniffi_krill_native_checksum_method_activitylistener_on_recv() != 35233.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_krill_native_checksum_method_activitylistener_terminate() != 8092.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if (lib.uniffi_krill_native_checksum_constructor_activityemitter_new() != 40124.toShort()) {
@@ -1448,6 +1468,8 @@ public interface ActivityEmitterInterface {
     
     suspend fun `start`(`listener`: ActivityListener, `domainOrIp`: kotlin.String, `timezone`: kotlin.Int)
     
+    suspend fun `stop`()
+    
     companion object
 }
 
@@ -1574,6 +1596,27 @@ open class ActivityEmitter: Disposable, AutoCloseable, ActivityEmitterInterface
         
         // Error FFI converter
         RustFfiException.ErrorHandler,
+    )
+    }
+
+    
+    @Suppress("ASSIGNED_BUT_NEVER_ACCESSED_VARIABLE")
+    override suspend fun `stop`() {
+        return uniffiRustCallAsync(
+        callWithHandle { uniffiHandle ->
+            UniffiLib.uniffi_krill_native_fn_method_activityemitter_stop(
+                uniffiHandle,
+                
+            )
+        },
+        { future, callback, continuation -> UniffiLib.ffi_krill_native_rust_future_poll_void(future, callback, continuation) },
+        { future, continuation -> UniffiLib.ffi_krill_native_rust_future_complete_void(future, continuation) },
+        { future -> UniffiLib.ffi_krill_native_rust_future_free_void(future) },
+        // lift function
+        { Unit },
+        
+        // Error FFI converter
+        UniffiNullRustCallStatusErrorHandler,
     )
     }
 
@@ -1715,6 +1758,8 @@ public interface ActivityListener {
     
     fun `onRecv`(`value`: ActivityListenerOutcome)
     
+    fun `terminate`()
+    
     companion object
 }
 
@@ -1826,6 +1871,18 @@ open class ActivityListenerImpl: Disposable, AutoCloseable, ActivityListener
     
     
 
+    override fun `terminate`()
+        = 
+    callWithHandle {
+    uniffiRustCall() { _status ->
+    UniffiLib.uniffi_krill_native_fn_method_activitylistener_terminate(
+        it,
+        _status)
+}
+    }
+    
+    
+
     
 
     
@@ -1856,6 +1913,17 @@ internal object uniffiCallbackInterfaceActivityListener {
             uniffiTraitInterfaceCall(uniffiCallStatus, makeCall, writeReturn)
         }
     }
+    internal object `terminate`: UniffiCallbackInterfaceActivityListenerMethod1 {
+        override fun callback(`uniffiHandle`: Long,`uniffiOutReturn`: Pointer,uniffiCallStatus: UniffiRustCallStatus,) {
+            val uniffiObj = FfiConverterTypeActivityListener.handleMap.get(uniffiHandle)
+            val makeCall = { ->
+                uniffiObj.`terminate`(
+                )
+            }
+            val writeReturn = { _: Unit -> Unit }
+            uniffiTraitInterfaceCall(uniffiCallStatus, makeCall, writeReturn)
+        }
+    }
 
     internal object uniffiFree: UniffiCallbackInterfaceFree {
         override fun callback(handle: Long) {
@@ -1873,6 +1941,7 @@ internal object uniffiCallbackInterfaceActivityListener {
         uniffiFree,
         uniffiClone,
         `onRecv`,
+        `terminate`,
     )
 
     // Registers the foreign callback with the Rust side.
@@ -3374,6 +3443,139 @@ public object FfiConverterTypeIpClassification: FfiConverterRustBuffer<IpClassif
 
     override fun write(value: IpClassification, buf: ByteBuffer) {
         buf.putInt(value.ordinal + 1)
+    }
+}
+
+
+
+
+
+sealed class NextChannelOp {
+    
+    object Terminate : NextChannelOp()
+    
+    
+    data class PerformDkgRound2(
+        val `sldTld`: kotlin.String, 
+        val `activityId`: kotlin.String) : NextChannelOp()
+        
+    {
+        
+
+        companion object
+    }
+    
+    data class FetchRound2Packages(
+        val `domainOrIp`: kotlin.String, 
+        val `activityId`: kotlin.String) : NextChannelOp()
+        
+    {
+        
+
+        companion object
+    }
+    
+    data class FinalizeDkg(
+        val `sldTld`: kotlin.String, 
+        val `activityId`: kotlin.String) : NextChannelOp()
+        
+    {
+        
+
+        companion object
+    }
+    
+
+    
+
+    
+    
+
+
+    companion object
+}
+
+/**
+ * @suppress
+ */
+public object FfiConverterTypeNextChannelOp : FfiConverterRustBuffer<NextChannelOp>{
+    override fun read(buf: ByteBuffer): NextChannelOp {
+        return when(buf.getInt()) {
+            1 -> NextChannelOp.Terminate
+            2 -> NextChannelOp.PerformDkgRound2(
+                FfiConverterString.read(buf),
+                FfiConverterString.read(buf),
+                )
+            3 -> NextChannelOp.FetchRound2Packages(
+                FfiConverterString.read(buf),
+                FfiConverterString.read(buf),
+                )
+            4 -> NextChannelOp.FinalizeDkg(
+                FfiConverterString.read(buf),
+                FfiConverterString.read(buf),
+                )
+            else -> throw RuntimeException("invalid enum value, something is very wrong!!")
+        }
+    }
+
+    override fun allocationSize(value: NextChannelOp) = when(value) {
+        is NextChannelOp.Terminate -> {
+            // Add the size for the Int that specifies the variant plus the size needed for all fields
+            (
+                4UL
+            )
+        }
+        is NextChannelOp.PerformDkgRound2 -> {
+            // Add the size for the Int that specifies the variant plus the size needed for all fields
+            (
+                4UL
+                + FfiConverterString.allocationSize(value.`sldTld`)
+                + FfiConverterString.allocationSize(value.`activityId`)
+            )
+        }
+        is NextChannelOp.FetchRound2Packages -> {
+            // Add the size for the Int that specifies the variant plus the size needed for all fields
+            (
+                4UL
+                + FfiConverterString.allocationSize(value.`domainOrIp`)
+                + FfiConverterString.allocationSize(value.`activityId`)
+            )
+        }
+        is NextChannelOp.FinalizeDkg -> {
+            // Add the size for the Int that specifies the variant plus the size needed for all fields
+            (
+                4UL
+                + FfiConverterString.allocationSize(value.`sldTld`)
+                + FfiConverterString.allocationSize(value.`activityId`)
+            )
+        }
+    }
+
+    override fun write(value: NextChannelOp, buf: ByteBuffer) {
+        when(value) {
+            is NextChannelOp.Terminate -> {
+                buf.putInt(1)
+                Unit
+            }
+            is NextChannelOp.PerformDkgRound2 -> {
+                buf.putInt(2)
+                FfiConverterString.write(value.`sldTld`, buf)
+                FfiConverterString.write(value.`activityId`, buf)
+                Unit
+            }
+            is NextChannelOp.FetchRound2Packages -> {
+                buf.putInt(3)
+                FfiConverterString.write(value.`domainOrIp`, buf)
+                FfiConverterString.write(value.`activityId`, buf)
+                Unit
+            }
+            is NextChannelOp.FinalizeDkg -> {
+                buf.putInt(4)
+                FfiConverterString.write(value.`sldTld`, buf)
+                FfiConverterString.write(value.`activityId`, buf)
+                Unit
+            }
+        }.let { /* this makes the `when` an expression, which ensures it is exhaustive */ }
     }
 }
 

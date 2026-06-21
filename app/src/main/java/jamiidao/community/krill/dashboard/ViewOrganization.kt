@@ -236,6 +236,8 @@ fun OrgDetails(
                                 Intent(context, FrostDkgHandler::class.java).also { intent ->
                                     context.stopService(intent)
                                 }
+
+                                dkgHandler.terminate()
                             }
                         }
                     }
@@ -373,11 +375,14 @@ class RustDkgHandler(val sldTld: String) :
         }
     }
 
-    fun close() {
-        scope.cancel()
-    }
-
     override fun onRecv(value: ActivityListenerOutcome) {
         state.value = value
+    }
+
+    override fun terminate() {
+        scope.launch {
+            emitter.stop()
+            scope.cancel()
+        }
     }
 }
