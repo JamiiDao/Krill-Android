@@ -88,16 +88,25 @@ impl ActivityEmitter {
 
         let len = (encoded_op.len() as u32).to_be_bytes();
 
-        send_stream.write_all(&len).await.map_err(|error| {
+        if let Err(error) = send_stream.write_all(&len).await {
             let error: QuicTransmissionError = error.into();
 
-            error
-        })?;
-        send_stream.write_all(&encoded_op).await.map_err(|error| {
+            ClientUtils::log_to_logcat("SENT TO RELAY....REACHED");
+
+            listener.on_recv(ActivityListenerOutcome {
+                data: RustTypeActivitySubscriberChannel::Terminated(error.to_string()),
+            });
+        }
+
+        if let Err(error) = send_stream.write_all(&encoded_op).await {
             let error: QuicTransmissionError = error.into();
 
-            error
-        })?;
+            ClientUtils::log_to_logcat("SENT TO RELAY....REACHED");
+
+            listener.on_recv(ActivityListenerOutcome {
+                data: RustTypeActivitySubscriberChannel::Terminated(error.to_string()),
+            });
+        }
 
         ClientUtils::log_to_logcat("SENT TO RELAY....REACHED");
 
