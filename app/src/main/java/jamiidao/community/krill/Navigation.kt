@@ -1,6 +1,7 @@
 package jamiidao.community.krill
 
 import android.content.Intent
+import androidx.compose.foundation.layout.Column
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -17,6 +18,7 @@ import com.google.firebase.messaging.FirebaseMessaging
 import jamiidao.community.krill.components.ShowErrorAsNormalView
 import jamiidao.community.krill.dashboard.ActivityMetadata
 import jamiidao.community.krill.dashboard.DashboardShell
+import jamiidao.community.krill.dashboard.SignalSigning
 import jamiidao.community.krill.dashboard.ViewOrganizationView
 import jamiidao.community.krill.deeplinks.JoinOrganization
 import jamiidao.community.krill.notifications_module.RequestNotificationPermissionScreen
@@ -128,6 +130,14 @@ fun AppNavigation(
                         ActivityMetadata(navController, argumentData)
                     }
 
+                    "signal" -> {
+                        SignalSigning(navController, argumentData)
+                    }
+
+                    "error" -> {
+                        ShowErrorAsNormalView(navController, error = argumentData)
+                    }
+
                     else -> {
                         LaunchedEffect(Unit) {
                             navController.popBackStack()
@@ -182,7 +192,6 @@ fun AppNavigation(
         }
     }
 }
-
 
 @Composable
 fun DashboardView(mainActivity: MainActivity, navController: NavController) {

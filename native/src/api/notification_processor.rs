@@ -1,7 +1,8 @@
 use bitcode::{Decode, Encode};
+use krill_common::ActivityStoreKey;
 use tracing::Level;
 
-use crate::{api::notification_channels::NotificationChannelInfo, TracingKeys};
+use crate::{api::notification_channels::NotificationChannelInfo, ClientUtils, TracingKeys};
 
 #[derive(Debug, uniffi::Record, Default, PartialEq, Eq, Clone, Encode, Decode)]
 pub struct RustTypeReceivedNotificationData {
@@ -27,23 +28,47 @@ pub struct RustTypeReceivedNotificationData {
 
 #[uniffi::export]
 async fn rust_fn_process_notification_info(
-    data: RustTypeReceivedNotificationData,
-) -> Option<RustTypeFetchedNotificationInfo> {
-    if data.data.is_none() {
-        TracingKeys::Notifications(data).log(Level::ERROR);
-        return None;
-    }
+    mut data: RustTypeReceivedNotificationData,
+) -> RustTypeFetchedNotificationInfo {
+    ClientUtils::log_to_logcat(&format!("RECEIVED NOTIFICATION: {data:?}"));
 
-    // TODO: Do Network op
+    let channel_info = NotificationChannelInfo::v0_1_2();
+    let notification_id = 1234567890_i32;
+    let group_event_id = data
+        .data
+        .take()
+        .unwrap_or("error/Invalid-Notification-Error.".to_string());
+    let subheading = "You are signature is required to sign the activity".to_string();
 
-    Some(RustTypeFetchedNotificationInfo {
-        channel_info: NotificationChannelInfo::v0_1_2(),
-        group_event_id: "jamiidaoappsigning12345678".to_string(),
-        notification_id: 12345678_i32,
-        heading: "Admin Creation Event".to_string(),
-        subheading: "Participate in group signing event to create an admin".to_string(),
+    let mut return_data = RustTypeFetchedNotificationInfo {
+        channel_info,
+        group_event_id,
+        notification_id,
+        heading: "Signature Requested".to_string(),
+        subheading,
         live_update: false,
-    })
+    };
+
+    let initial = return_data.group_event_id.clone();
+
+    let [_, _] = match initial
+        .split("/")
+        .map(|value| value.to_string())
+        .collect::<Vec<String>>()
+        .try_into()
+    {
+        Ok(value) => value,
+        Err(_) => {
+            return_data.group_event_id = "error/Invalid notification deeplink.".to_string();
+            return_data.heading = "Deeplink Error".to_string();
+            return_data.subheading =
+                "The notification received contains invalid details.".to_string();
+
+            return return_data;
+        }
+    };
+
+    return_data
 }
 
 #[derive(Debug, Default, uniffi::Record)]

@@ -916,7 +916,7 @@ private fun uniffiCheckApiChecksums(lib: IntegrityCheckingUniffiLib) {
     if (lib.uniffi_krill_native_checksum_func_rust_fn_notification_versioning_ops() != 30489.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_krill_native_checksum_func_rust_fn_process_notification_info() != 48054.toShort()) {
+    if (lib.uniffi_krill_native_checksum_func_rust_fn_process_notification_info() != 35892.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if (lib.uniffi_krill_native_checksum_func_rust_fn_clear_org_info() != 5727.toShort()) {
@@ -4871,38 +4871,6 @@ public object FfiConverterOptionalTypeRustTypeActivityMetadata: FfiConverterRust
 /**
  * @suppress
  */
-public object FfiConverterOptionalTypeRustTypeFetchedNotificationInfo: FfiConverterRustBuffer<RustTypeFetchedNotificationInfo?> {
-    override fun read(buf: ByteBuffer): RustTypeFetchedNotificationInfo? {
-        if (buf.get().toInt() == 0) {
-            return null
-        }
-        return FfiConverterTypeRustTypeFetchedNotificationInfo.read(buf)
-    }
-
-    override fun allocationSize(value: RustTypeFetchedNotificationInfo?): ULong {
-        if (value == null) {
-            return 1UL
-        } else {
-            return 1UL + FfiConverterTypeRustTypeFetchedNotificationInfo.allocationSize(value)
-        }
-    }
-
-    override fun write(value: RustTypeFetchedNotificationInfo?, buf: ByteBuffer) {
-        if (value == null) {
-            buf.put(0)
-        } else {
-            buf.put(1)
-            FfiConverterTypeRustTypeFetchedNotificationInfo.write(value, buf)
-        }
-    }
-}
-
-
-
-
-/**
- * @suppress
- */
 public object FfiConverterOptionalTypeRustTypeStoredOrgInfoMetadata: FfiConverterRustBuffer<RustTypeStoredOrgInfoMetadata?> {
     override fun read(buf: ByteBuffer): RustTypeStoredOrgInfoMetadata? {
         if (buf.get().toInt() == 0) {
@@ -5108,14 +5076,14 @@ public object FfiConverterSequenceTypeRustTypeStoredOrgInfoMetadata: FfiConverte
     
 
     @Suppress("ASSIGNED_BUT_NEVER_ACCESSED_VARIABLE")
-     suspend fun `rustFnProcessNotificationInfo`(`data`: RustTypeReceivedNotificationData) : RustTypeFetchedNotificationInfo? {
+     suspend fun `rustFnProcessNotificationInfo`(`data`: RustTypeReceivedNotificationData) : RustTypeFetchedNotificationInfo {
         return uniffiRustCallAsync(
         UniffiLib.uniffi_krill_native_fn_func_rust_fn_process_notification_info(FfiConverterTypeRustTypeReceivedNotificationData.lower(`data`),),
         { future, callback, continuation -> UniffiLib.ffi_krill_native_rust_future_poll_rust_buffer(future, callback, continuation) },
         { future, continuation -> UniffiLib.ffi_krill_native_rust_future_complete_rust_buffer(future, continuation) },
         { future -> UniffiLib.ffi_krill_native_rust_future_free_rust_buffer(future) },
         // lift function
-        { FfiConverterOptionalTypeRustTypeFetchedNotificationInfo.lift(it) },
+        { FfiConverterTypeRustTypeFetchedNotificationInfo.lift(it) },
         // Error FFI converter
         UniffiNullRustCallStatusErrorHandler,
     )

@@ -47,7 +47,7 @@ futures-lite = "2.6.1"
 async-net = "2.0.0"
 frost-ed25519 = "3.0.0"
 async-lock = "3.4.2"
-faster-hex = "0.10.0"
+faster-hex = { version = "0.10.0", default-features = false, features = ["std"] }
 bs58 = { version = "0.5.1", features = ["std"] }
 hifitime = { version = "4.3.0", default-features = false }
 percent-encoding = "2.3.2"

@@ -7,7 +7,8 @@ use krill_common::{
     AsymmetricSignatureBytes, AsymmetricVerifyingKeyBytes, Blake3HashBytes,
     EphemeralClientDeviceKeypair, EphemeralClientDeviceVerifyingKey, FrostCredentialSeed,
     FrostOpsError, FrostOpsResult, FrostParticipateMessage, FrostRound2ParticipantEncryptedPayload,
-    MinMaxParticipants, QuicProtocolOp, Tai64NTimestamp,
+    FrostSignatureBytes, FrostSignatureShareBytes, FrostSigningCommitmentsBytes, FrostSigningEvent,
+    FrostSigningPackageBytes, MinMaxParticipants, QuicProtocolOp, Tai64NTimestamp,
 };
 use smol::channel::Sender;
 use zeroize::Zeroize;
@@ -86,6 +87,10 @@ impl FrostParticipateMessageWrapper {
             key_package: Option::default(),
             public_package: Option::default(),
             round2_received_public: HashMap::default(),
+            signing_commitment: Option::default(),
+            signing_package: Option::default(),
+            signature_share: Option::default(),
+            aggregate: Option::default(),
         };
 
         stored_org_info
@@ -186,6 +191,10 @@ pub(crate) struct FrostParticipantInternalData {
     pub(crate) round2_public: HashMap<String, FrostRound2ParticipantEncryptedPayload>,
     pub(crate) round1_participants: Vec<FrostParticipateMessage>,
     pub(crate) round2_received_public: HashMap<String, FrostRound2ParticipantEncryptedPayload>,
+    pub(crate) signing_commitment: Option<FrostSigningCommitmentsBytes>,
+    pub(crate) signing_package: Option<FrostSigningPackageBytes>,
+    pub(crate) signature_share: Option<FrostSignatureShareBytes>,
+    pub(crate) aggregate: Option<FrostSignatureBytes>,
 }
 
 impl From<FrostParticipantInternalData> for FrostParticipateMessage {

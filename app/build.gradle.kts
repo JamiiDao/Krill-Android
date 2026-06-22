@@ -17,8 +17,8 @@ android {
         applicationId = "jamiidao.community.krill"
         minSdk = 29
         targetSdk = 36
-        versionCode = 11
-        versionName = "1.1.1-alpha"
+        versionCode = 13
+        versionName = "1.1.5-alpha"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }

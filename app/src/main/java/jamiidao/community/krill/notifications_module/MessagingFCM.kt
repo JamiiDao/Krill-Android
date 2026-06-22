@@ -39,7 +39,7 @@ class FGCMService : FirebaseMessagingService() {
 
         scope.launch {
             val info = RustTypeReceivedNotificationData(
-                data = message.data["base64_encoded"],
+                data = message.data["operation"],
                 messageId = message.messageId,
                 from = message.from,
                 originalPriority = message.originalPriority,
@@ -51,9 +51,8 @@ class FGCMService : FirebaseMessagingService() {
 
             val processNotification = rustFnProcessNotificationInfo(info)
 
-            processNotification?.let {
-                sendNotification(it)
-            }
+            sendNotification(processNotification)
+
         }
     }
 
@@ -86,7 +85,7 @@ class FGCMService : FirebaseMessagingService() {
 
         val pendingIntent = PendingIntent.getActivity(
             this,
-            0,
+            message.notificationId,
             intent,
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
         )

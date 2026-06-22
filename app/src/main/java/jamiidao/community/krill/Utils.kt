@@ -14,6 +14,7 @@ fun app_log(message: String) {
 
 fun isValidDeeplink(value: String): Boolean {
     return value.startsWith("krill://join") || value.startsWith("krill://dkg")
+            || value.startsWith("krill://signal") || value.startsWith("krill://error")
 }
 
 fun appStoragePath(context: Context): String {
